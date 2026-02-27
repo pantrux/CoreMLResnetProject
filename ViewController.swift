@@ -6,12 +6,12 @@
 //
 
 import UIKit
+import CoreML // Importamos CoreML para interactuar con el modelo
+import Vision // Importamos Vision para facilitar la integración con Core ML
 
 class ViewController: UIViewController {
 
     // MARK: - UI Elements
-    // Aquí es donde declararemos los elementos de la UI como UIImageView, UILabel, UIButton.
-    // Los inicializaremos en setupUI()
 
     let imageView: UIImageView = {
         let imageView = UIImageView()
@@ -46,6 +46,25 @@ class ViewController: UIViewController {
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+
+    // MARK: - Core ML Model
+    // Instancia del modelo Core ML.
+    // Usaremos un lazy var para cargarlo solo cuando sea necesario.
+    lazy var classificationRequest: VNCoreMLRequest = {
+        do {
+            // Cargar el modelo generado automáticamente por Core ML
+            let model = try VNCoreMLModel(for: Resnet50().model)
+            let request = VNCoreMLRequest(model: model, completionHandler: { [weak self] request, error in
+                self?.processClassifications(for: request, error: error)
+            })
+            // El modelo espera una imagen de 224x224, escala la imagen para ajustarse
+            request.imageCropAndScaleOption = .centerCrop
+            return request
+        } catch {
+            fatalError("Failed to load Vision ML model: \(error)")
+        }
     }()
 
 
@@ -91,20 +110,60 @@ class ViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func selectImageTapped() {
-        // Lógica para abrir el UIImagePickerController
         presentImagePicker()
     }
 
     @objc private func classifyImageTapped() {
-        // Lógica para clasificar la imagen con Core ML
         resultLabel.text = "Clasificando imagen..."
-        // Aquí llamaremos a nuestra función de Core ML
+        updateClassifications()
     }
 
-    // MARK: - Core ML Integration (Coming Soon)
-    // Aquí es donde añadiremos el código para cargar y usar el modelo Resnet50.mlmodel
-    // Funciones para pre-procesar la imagen y post-procesar el resultado.
+    // MARK: - Core ML Logic
 
+    func updateClassifications() {
+        guard let image = imageView.image else {
+            resultLabel.text = "Por favor, selecciona una imagen para clasificar."
+            return
+        }
+
+        guard let ciImage = CIImage(image: image) else {
+            fatalError("No se pudo convertir UIImage a CIImage.")
+        }
+
+        // Ejecutar la petición de Vision en un hilo de fondo
+        DispatchQueue.global(qos: .userInitiated).async {
+            let handler = VNImageRequestHandler(ciImage: ciImage)
+            do {
+                try handler.perform([self.classificationRequest])
+            } catch {
+                print("Fallo al realizar la clasificación de Vision: \(error)")
+            }
+        }
+    }
+
+    func processClassifications(for request: VNRequest, error: Error?) {
+        DispatchQueue.main.async {
+            guard let results = request.results else {
+                self.resultLabel.text = "Incapaz de clasificar la imagen.\n\(error!.localizedDescription)"
+                return
+            }
+
+            // The classification request handler returns an array of VNClassificationObservation objects.
+            let classifications = results as! [VNClassificationObservation]
+
+            if classifications.isEmpty {
+                self.resultLabel.text = "Nada reconocido."
+            } else {
+                // Display top 2 classifications
+                let topClassifications = classifications.prefix(2)
+                let descriptions = topClassifications.map { classification in
+                    // Format the classification for display.
+                    return String(format: "%.2f", classification.confidence * 100) + "% " + classification.identifier
+                }
+                self.resultLabel.text = "Clasificación:\n" + descriptions.joined(separator: "\n")
+            }
+        }
+    }
 }
 
 // MARK: - UIImagePickerControllerDelegate & UINavigationControllerDelegate
@@ -117,7 +176,7 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
         present(picker, animated: true)
     }
 
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    func imagePickerController(_ picker: UIImageController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true)
 
         if let selectedImage = info[.originalImage] as? UIImage {
