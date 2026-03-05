@@ -26,20 +26,27 @@ def main() -> int:
         return fail("missing CHANGELOG.md file")
 
     version = version_path.read_text(encoding="utf-8").strip()
-    if not SEMVER_RE.match(version):
+    match = SEMVER_RE.match(version)
+    if not match:
         return fail(
             "VERSION must follow semver (x.y.z, optional -prerelease and +build metadata). "
             f"Got: '{version}'"
         )
 
+    prerelease = match.group(4)
     changelog = changelog_path.read_text(encoding="utf-8")
 
     if "## [Unreleased]" not in changelog:
         return fail("CHANGELOG.md must include '## [Unreleased]' section")
 
-    expected_version_header = f"## [{version}]"
-    if expected_version_header not in changelog:
-        return fail(f"CHANGELOG.md must include '{expected_version_header}' section")
+    if prerelease is None:
+        expected_version_header = f"## [{version}]"
+        if expected_version_header not in changelog:
+            return fail(f"CHANGELOG.md must include '{expected_version_header}' section")
+    else:
+        release_headers = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", changelog, flags=re.M)
+        if not release_headers:
+            return fail("CHANGELOG.md must include at least one stable release section '## [x.y.z]'")
 
     print("[release-metadata] PASS")
     print(f"[release-metadata] VERSION={version}")

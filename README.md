@@ -87,7 +87,8 @@ Además sube artefactos de diagnóstico (`ci-logs`) con logs, `xcresult` y repor
 - `VERSION`: versión semántica vigente del proyecto (`x.y.z`, opcional `-prerelease` y `+build`).
 - `CHANGELOG.md`: historial de cambios (Keep a Changelog).
 - `docs/RELEASE.md`: checklist operativa de release.
-- CI incluye **Release metadata gate** para validar formato/versionado mínimo.
+- `scripts/version_sync.py`: sincroniza/valida versión iOS (`MARKETING_VERSION` y `CFBundleShortVersionString`) usando el core `x.y.z` de `VERSION`.
+- CI incluye **Release metadata gate** + **Version sync gate** para validar formato/versionado y evitar drift entre metadata de release y app bundle.
 
 ## Licencia
 
