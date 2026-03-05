@@ -30,7 +30,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Test (simulator, auto-provisioned if needed, no codesign)
+      - name: Test (best available destination, no codesign)
         run: |
           set -euo pipefail
 
@@ -45,39 +45,25 @@ jobs:
             | grep -v 'placeholder' \
             | head -n1 || true)
 
+          DEST_KIND="iOS Simulator"
+
           if [ -z "${DEST_ID:-}" ]; then
-            echo "No concrete iOS simulator found. Creating one with simctl..."
-
-            RUNTIME_ID=$(xcrun simctl list runtimes \
-              | sed -nE 's/^[[:space:]]*iOS .* - (com\.apple\.CoreSimulator\.SimRuntime\.iOS[^ ]+) \(available\)$/\1/p' \
-              | tail -n1)
-
-            DEVICE_TYPE_ID=$(xcrun simctl list devicetypes \
-              | sed -nE 's/^[[:space:]]*iPhone 16( Pro)? \((com\.apple\.CoreSimulator\.SimDeviceType\.[^)]+)\)$/\2/p' \
-              | head -n1)
-
-            if [ -z "${DEVICE_TYPE_ID:-}" ]; then
-              DEVICE_TYPE_ID=$(xcrun simctl list devicetypes \
-                | sed -nE 's/^[[:space:]]*iPhone .*\((com\.apple\.CoreSimulator\.SimDeviceType\.[^)]+)\)$/\1/p' \
-                | head -n1)
-            fi
-
-            if [ -z "${RUNTIME_ID:-}" ] || [ -z "${DEVICE_TYPE_ID:-}" ]; then
-              echo "Unable to determine runtime/device type for simulator creation"
-              exit 1
-            fi
-
-            DEST_ID=$(xcrun simctl create "CI-iPhone" "$DEVICE_TYPE_ID" "$RUNTIME_ID")
-            xcrun simctl boot "$DEST_ID" || true
-            xcrun simctl bootstatus "$DEST_ID" -b
+            DEST_ID=$(echo "$DESTINATIONS" \
+              | sed -nE 's/.*platform:macOS,.*id:[[:space:]]*([^,]+),.*/\1/p' \
+              | head -n1 || true)
+            DEST_KIND="macOS (Designed for iPad/iPhone)"
           fi
 
-          echo "Using iOS Simulator destination id=$DEST_ID"
+          if [ -z "${DEST_ID:-}" ]; then
+            echo "No compatible destination found"
+            exit 1
+          fi
+
+          echo "Using destination ($DEST_KIND): id=$DEST_ID"
 
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
-            -sdk iphonesimulator \
             -destination "id=$DEST_ID" \
             CODE_SIGNING_ALLOWED=NO \
             test
