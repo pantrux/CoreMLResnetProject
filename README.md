@@ -62,6 +62,10 @@ La suite (`CoreMLProjectTests`) valida:
 - Formateo de salida top-2 para clasificación
 - Casos edge de payload (`missingResults`, `invalidType`)
 - Mensajes de error con y sin detalle
+- **UI smoke tests** del `ViewController`:
+  - estado inicial de botones/label
+  - prompt al clasificar sin imagen
+  - mensaje de modelo no disponible
 
 ## CI
 
