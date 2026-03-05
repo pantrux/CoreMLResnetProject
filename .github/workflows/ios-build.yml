@@ -118,9 +118,26 @@ jobs:
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination "id=${{ steps.detect_destination.outputs.dest_id }}" \
+            -enableCodeCoverage YES \
             -resultBundlePath ci-logs/test-results.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             test | tee ci-logs/test.log
+
+      - name: Coverage gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun xccov view --report --json ci-logs/test-results.xcresult > ci-logs/coverage-report.json
+
+          python3 scripts/check_coverage.py \
+            --report ci-logs/coverage-report.json \
+            --target CoreMLProject \
+            --min-line 0.15 | tee ci-logs/coverage-gate.log
+
+          {
+            echo "## Coverage Gate"
+            cat ci-logs/coverage-gate.log
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload CI diagnostics artifact
         if: always()

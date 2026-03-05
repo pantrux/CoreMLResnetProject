@@ -78,8 +78,9 @@ El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `m
 - Build en iOS Simulator
 - Build-for-testing
 - Test en simulador real (strict mode, sin skip)
+- Coverage gate mínimo (15%) sobre el target `CoreMLProject` usando `scripts/check_coverage.py`
 
-Además sube artefactos de diagnóstico (`ci-logs`) con logs y `xcresult` para troubleshooting.
+Además sube artefactos de diagnóstico (`ci-logs`) con logs, `xcresult` y reporte de cobertura para troubleshooting.
 
 ## Licencia
 
