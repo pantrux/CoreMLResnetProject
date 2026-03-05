@@ -4,9 +4,15 @@ on:
   pull_request:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo del disparo manual (diagnóstico / recuperación)'
+        required: false
+        default: 'manual-recovery'
 
 concurrency:
-  group: ios-build-${{ github.workflow }}-${{ github.ref }}
+  group: ios-build-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
