@@ -20,8 +20,7 @@ final class VisionImageClassificationService: ImageClassificationServicing {
     private let visionModel: VNCoreMLModel
 
     init(modelName: String = ModelClassifierFactory.defaultModelName) throws {
-        let request = try ModelClassifierFactory.makeRequest(modelName: modelName)
-        visionModel = request.model
+        visionModel = try ModelClassifierFactory.makeVisionModel(modelName: modelName)
     }
 
     func classify(
