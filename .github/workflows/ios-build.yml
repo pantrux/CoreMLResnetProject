@@ -6,13 +6,13 @@ on:
     branches: [ main ]
 
 concurrency:
-  group: ios-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ios-build-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-test-and-lint:
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,7 +114,6 @@ jobs:
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            -destination-timeout 120 \
             CODE_SIGNING_ALLOWED=NO \
             build | tee ci-logs/build.log
 
@@ -128,7 +127,6 @@ jobs:
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            -destination-timeout 120 \
             CODE_SIGNING_ALLOWED=NO \
             build-for-testing | tee ci-logs/build-for-testing.log
 
