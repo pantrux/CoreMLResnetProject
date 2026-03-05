@@ -46,7 +46,7 @@ class ViewController: UIViewController {
 
     // MARK: - Classification Service
 
-    var classificationService: ImageClassificationServicing? = ViewController.makeDefaultClassificationService()
+    lazy var classificationService: ImageClassificationServicing? = ViewController.makeDefaultClassificationService()
 
     private static func makeDefaultClassificationService() -> ImageClassificationServicing? {
         do {
@@ -145,8 +145,6 @@ class ViewController: UIViewController {
             resultLabel.text = "Resultado inesperado de Vision (tipo inválido)."
         case .failure(.invalidImage):
             resultLabel.text = "No se pudo procesar la imagen seleccionada."
-        case .failure(.modelUnavailable):
-            resultLabel.text = "Modelo no disponible. Reinicia la app o verifica el archivo .mlmodel."
         case .failure(.visionFailed(let error)):
             resultLabel.text = "Fallo al clasificar: \(error.localizedDescription)"
         }

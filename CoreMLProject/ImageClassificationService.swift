@@ -3,7 +3,6 @@ import Vision
 
 enum ClassificationServiceError: Error {
     case invalidImage
-    case modelUnavailable
     case invalidResultType
     case missingResults(Error?)
     case visionFailed(Error)
