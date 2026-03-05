@@ -21,11 +21,12 @@ enum ModelLoaderError: LocalizedError {
 }
 
 enum ModelClassifierFactory {
+    static let defaultModelName = "Resnet50"
+
     static func makeRequest(
+        modelName: String = defaultModelName,
         completionHandler: VNRequestCompletionHandler? = nil
     ) throws -> VNCoreMLRequest {
-        let modelName = "Resnet50"
-
         guard let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc") else {
             throw ModelLoaderError.compiledModelNotFound(modelName)
         }
@@ -128,7 +129,7 @@ class ViewController: UIViewController {
     // Usamos optional para evitar crash si el modelo no carga.
     lazy var classificationRequest: VNCoreMLRequest? = {
         do {
-            return try ModelClassifierFactory.makeRequest { [weak self] request, error in
+            return try ModelClassifierFactory.makeRequest(modelName: ModelClassifierFactory.defaultModelName) { [weak self] request, error in
                 self?.processClassifications(for: request, error: error)
             }
         } catch {
