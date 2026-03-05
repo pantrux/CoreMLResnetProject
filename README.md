@@ -1,57 +1,52 @@
 # CoreMLResnetProject
 
-Demo minimal (UIKit) para **clasificar imágenes** usando **Core ML + Vision** con el modelo `Resnet50.mlmodel`.
+App iOS (UIKit) minimal para **clasificar imágenes** usando **Core ML + Vision** con el modelo `Resnet50.mlmodel`.
 
-> Nota: este repo está pensado como “código fuente + modelo”. Para compilar y ejecutar necesitas un proyecto Xcode (`.xcodeproj`) o un workspace (`.xcworkspace`).
+## ✅ Qué incluye
 
-## Qué incluye
-
-- `ViewController.swift` — UI + integración Vision (`VNCoreMLRequest`) para clasificar una imagen
-- `AppDelegate.swift` / `SceneDelegate.swift` — bootstrap sin storyboard (root view controller por código)
-- `Resnet50.mlmodel` — modelo CoreML
+- Proyecto listo para abrir en Xcode: `CoreMLProject.xcodeproj`
+- Código fuente:
+  - `CoreMLProject/AppDelegate.swift`
+  - `CoreMLProject/SceneDelegate.swift`
+  - `CoreMLProject/ViewController.swift`
+- Recursos:
+  - `CoreMLProject/Resnet50.mlmodel`
+  - `CoreMLProject/Info.plist` (incluye `NSPhotoLibraryUsageDescription`)
+  - `CoreMLProject/Assets.xcassets` (AppIcon placeholder)
 
 ## Requisitos
 
 - macOS con Xcode
-- iOS target (simulador o device)
+- iOS Simulator o device
 
-## Cómo usarlo (paso a paso)
+## Cómo ejecutar
 
-1) **Crear proyecto UIKit**
-
-- Xcode → File → New → Project → iOS → *App*
-- Interface: **Storyboard** o **SwiftUI** (da igual, luego lo sobreescribimos)
-- Language: **Swift**
-
-2) **Copiar los archivos de este repo**
-
-- Copia `AppDelegate.swift`, `SceneDelegate.swift`, `ViewController.swift` al proyecto (reemplaza los existentes si aplica).
-- Arrastra `Resnet50.mlmodel` al proyecto (asegúrate de marcar “Copy items if needed”).
-
-3) **Agregar permisos en Info.plist**
-
-La app abre la galería (Photo Library). Agrega:
-
-- `NSPhotoLibraryUsageDescription` → por ejemplo: `Necesitamos acceso a tu galería para clasificar imágenes.`
-
-Sin este permiso iOS puede crashear al abrir el picker.
-
-4) **Ejecutar**
-
-- Run en simulador o dispositivo
-- “Seleccionar Imagen” → elige una
-- “Clasificar Imagen” → verás el top-2 de resultados con confianza
+1) Abre `CoreMLProject.xcodeproj` en Xcode.
+2) Selecciona un simulador (o device).
+3) Run.
+4) En la app:
+   - “Seleccionar Imagen” → elige una imagen de tu Photo Library
+   - “Clasificar Imagen” → verás el top-2 de resultados + % confianza
 
 ## Notas técnicas
 
-- El modelo espera `224x224`, por eso se usa:
-  - `request.imageCropAndScaleOption = .centerCrop`
-- La inferencia se corre en background y el UI se actualiza en main thread.
+- Vision usa `VNCoreMLRequest` con `imageCropAndScaleOption = .centerCrop` (el modelo espera `224x224`).
+- Inferencia en background, UI update en main.
 
-## Buenas prácticas recomendadas
+## Git LFS (recomendado)
 
-- Considerar mover el modelo a **Git LFS** si el repo crece (el `.mlmodel` es grande).
-- Agregar tests (al menos smoke) y CI cuando el proyecto Xcode exista en el repo.
+El archivo `.mlmodel` es grande. Si vas a iterar con modelos o el repo crece, conviene usar Git LFS:
+
+```bash
+git lfs install
+git lfs track "*.mlmodel"
+```
+
+Este repo incluye `.gitattributes` con la regla recomendada.
+
+## CI
+
+Hay un workflow (`.github/workflows/ios-build.yml`) que compila el proyecto en `macos-latest` (simulador) con `CODE_SIGNING_ALLOWED=NO`.
 
 ## Licencia
 

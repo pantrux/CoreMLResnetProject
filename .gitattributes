@@ -1,0 +1,2 @@
+# Recommended: track CoreML models with Git LFS
+*.mlmodel filter=lfs diff=lfs merge=lfs -text
