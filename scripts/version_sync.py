@@ -44,7 +44,7 @@ def load_plist(plist_path: Path) -> dict:
 
 def save_plist(plist_path: Path, data: dict) -> None:
     with plist_path.open("wb") as fh:
-        plistlib.dump(data, fh, sort_keys=False)
+        plistlib.dump(data, fh, fmt=plistlib.FMT_XML, sort_keys=False)
 
 
 def read_pbxproj(pbxproj_path: Path) -> str:
