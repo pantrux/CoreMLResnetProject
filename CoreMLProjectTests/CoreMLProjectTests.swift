@@ -90,6 +90,38 @@ final class CoreMLProjectTests: XCTestCase {
         XCTAssertEqual(explicitErrorMessage, "Incapaz de clasificar la imagen.\nerror-controlado")
     }
 
+    func testVisionImageClassificationServiceReturnsInvalidImageForEmptyUIImage() throws {
+        let queue = DispatchQueue(label: "VisionImageClassificationServiceTests.queue")
+        let sut = try VisionImageClassificationService(
+            modelName: ModelClassifierFactory.defaultModelName,
+            workerQueue: queue
+        )
+        let expectation = expectation(description: "Invalid image completion")
+
+        sut.classify(image: UIImage()) { result in
+            switch result {
+            case .failure(.invalidImage):
+                XCTAssertTrue(true)
+            default:
+                XCTFail("Expected invalidImage error")
+            }
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testVisionImageClassificationServiceInitThrowsWhenModelDoesNotExist() {
+        XCTAssertThrowsError(
+            try VisionImageClassificationService(modelName: "ModelThatDoesNotExist")
+        ) { error in
+            guard case ModelLoaderError.compiledModelNotFound(let modelName) = error else {
+                return XCTFail("Expected compiledModelNotFound")
+            }
+            XCTAssertEqual(modelName, "ModelThatDoesNotExist")
+        }
+    }
+
     // MARK: - UI smoke tests
 
     func testViewControllerInitialUIState() {
@@ -144,6 +176,19 @@ final class CoreMLProjectTests: XCTestCase {
         XCTAssertEqual(sut.resultLabel.text, "Clasificación:\n87.65% tabby\n54.32% tiger_cat")
     }
 
+    func testUpdateClassificationsUsesInjectedServiceAndRendersEmptySuccess() {
+        let sut = makeSUT()
+        let service = MockClassificationService(result: .success([]))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(service.classifyCallCount, 1)
+        XCTAssertEqual(sut.resultLabel.text, "Nada reconocido.")
+    }
+
     func testUpdateClassificationsUsesInjectedServiceAndRendersFailure() {
         let sut = makeSUT()
         let service = MockClassificationService(result: .failure(.missingResults(DummyClassificationError())))
@@ -155,6 +200,65 @@ final class CoreMLProjectTests: XCTestCase {
 
         XCTAssertEqual(service.classifyCallCount, 1)
         XCTAssertEqual(sut.resultLabel.text, "Incapaz de clasificar la imagen.\nerror-controlado")
+    }
+
+    func testUpdateClassificationsRendersInvalidResultTypeMessage() {
+        let sut = makeSUT()
+        let service = MockClassificationService(result: .failure(.invalidResultType))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(sut.resultLabel.text, "Resultado inesperado de Vision (tipo inválido).")
+    }
+
+    func testUpdateClassificationsRendersInvalidImageMessage() {
+        let sut = makeSUT()
+        let service = MockClassificationService(result: .failure(.invalidImage))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(sut.resultLabel.text, "No se pudo procesar la imagen seleccionada.")
+    }
+
+    func testUpdateClassificationsRendersVisionFailedMessage() {
+        let sut = makeSUT()
+        let nsError = NSError(domain: "VisionTests", code: 37, userInfo: [NSLocalizedDescriptionKey: "vision boom"])
+        let service = MockClassificationService(result: .failure(.visionFailed(nsError)))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(sut.resultLabel.text, "Fallo al clasificar: vision boom")
+    }
+
+    func testViewDidLoadWithNilServiceShowsModelLoadError() {
+        let sut = ViewController()
+        sut.classificationService = nil
+
+        sut.loadViewIfNeeded()
+
+        XCTAssertFalse(sut.classifyButton.isEnabled)
+        XCTAssertEqual(sut.resultLabel.text, "Error: no se pudo cargar el modelo ML.")
+    }
+
+    func testImagePickerDidFinishPickingEnablesClassificationAndUpdatesLabel() {
+        let sut = makeSUT()
+        let picker = UIImagePickerController()
+        let image = makeDummyImage()
+
+        sut.imagePickerController(picker, didFinishPickingMediaWithInfo: [.originalImage: image])
+
+        XCTAssertEqual(sut.imageView.image?.size, image.size)
+        XCTAssertTrue(sut.classifyButton.isEnabled)
+        XCTAssertEqual(sut.resultLabel.text, "Imagen seleccionada. Lista para clasificar.")
     }
 
     // MARK: - Helpers
