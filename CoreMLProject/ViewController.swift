@@ -9,6 +9,36 @@ import UIKit
 import CoreML // Importamos CoreML para interactuar con el modelo
 import Vision // Importamos Vision para facilitar la integración con Core ML
 
+enum ModelLoaderError: LocalizedError {
+    case compiledModelNotFound(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .compiledModelNotFound(let modelName):
+            return "No se encontró \(modelName).mlmodelc en el bundle"
+        }
+    }
+}
+
+enum ModelClassifierFactory {
+    static func makeRequest(
+        completionHandler: VNRequestCompletionHandler? = nil
+    ) throws -> VNCoreMLRequest {
+        let modelName = "Resnet50"
+
+        guard let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc") else {
+            throw ModelLoaderError.compiledModelNotFound(modelName)
+        }
+
+        let mlModel = try MLModel(contentsOf: modelURL)
+        let visionModel = try VNCoreMLModel(for: mlModel)
+
+        let request = VNCoreMLRequest(model: visionModel, completionHandler: completionHandler)
+        request.imageCropAndScaleOption = .centerCrop
+        return request
+    }
+}
+
 class ViewController: UIViewController {
 
     // MARK: - UI Elements
@@ -52,23 +82,11 @@ class ViewController: UIViewController {
     // Usamos optional para evitar crash si el modelo no carga.
     lazy var classificationRequest: VNCoreMLRequest? = {
         do {
-            // Cargar el modelo compilado desde el bundle (evita depender de clase auto-generada)
-            guard let modelURL = Bundle.main.url(forResource: "Resnet50", withExtension: "mlmodelc") else {
-                print("⚠️ No se encontró Resnet50.mlmodelc en el bundle")
-                return nil
-            }
-
-            let mlModel = try MLModel(contentsOf: modelURL)
-            let model = try VNCoreMLModel(for: mlModel)
-
-            let request = VNCoreMLRequest(model: model, completionHandler: { [weak self] request, error in
+            return try ModelClassifierFactory.makeRequest { [weak self] request, error in
                 self?.processClassifications(for: request, error: error)
-            })
-            // El modelo espera una imagen de 224x224, escala la imagen para ajustarse
-            request.imageCropAndScaleOption = .centerCrop
-            return request
+            }
         } catch {
-            print("⚠️ Failed to load Vision ML model: \(error)")
+            print("⚠️ Failed to load Vision ML model: \(error.localizedDescription)")
             return nil
         }
     }()

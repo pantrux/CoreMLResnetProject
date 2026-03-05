@@ -2,12 +2,13 @@ import XCTest
 @testable import CoreMLProject
 
 final class CoreMLProjectTests: XCTestCase {
-    func testModelLoading() {
-        let viewController = ViewController()
+    func testModelRequestFactoryBuildsClassificationRequest() throws {
+        let request = try ModelClassifierFactory.makeRequest()
 
-        XCTAssertNotNil(
-            viewController.classificationRequest,
-            "Failed to load CoreML model request (Resnet50)."
+        XCTAssertEqual(
+            request.imageCropAndScaleOption,
+            .centerCrop,
+            "Unexpected image crop/scale option for Resnet50 request."
         )
     }
 }
