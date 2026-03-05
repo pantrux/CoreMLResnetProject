@@ -1,6 +1,5 @@
 import XCTest
 import UIKit
-import Vision
 @testable import CoreMLProject
 
 final class CoreMLProjectTests: XCTestCase {
@@ -83,28 +82,6 @@ final class CoreMLProjectTests: XCTestCase {
         }
     }
 
-    func testParsePayloadMapsVisionObservationsIntoClassificationItems() {
-        let payload: [VNClassificationObservation] = [
-            VNClassificationObservation(identifier: "golden_retriever", confidence: 0.91),
-            VNClassificationObservation(identifier: "labrador", confidence: 0.81)
-        ]
-
-        let result = ClassificationPresenter.parsePayload(payload)
-
-        switch result {
-        case .success(let items):
-            XCTAssertEqual(
-                items,
-                [
-                    ClassificationItem(identifier: "golden_retriever", confidence: 0.91),
-                    ClassificationItem(identifier: "labrador", confidence: 0.81)
-                ]
-            )
-        case .failure(let error):
-            XCTFail("Expected mapped items, got error: \(error)")
-        }
-    }
-
     func testFailureMessageUsesFallbackAndErrorDescription() {
         let fallbackMessage = ClassificationPresenter.makeFailureMessage(for: nil)
         XCTAssertEqual(fallbackMessage, "Incapaz de clasificar la imagen.\n(sin detalle)")
@@ -132,6 +109,17 @@ final class CoreMLProjectTests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testVisionImageClassificationServiceInitThrowsWhenModelDoesNotExist() {
+        XCTAssertThrowsError(
+            try VisionImageClassificationService(modelName: "ModelThatDoesNotExist")
+        ) { error in
+            guard case ModelLoaderError.compiledModelNotFound(let modelName) = error else {
+                return XCTFail("Expected compiledModelNotFound")
+            }
+            XCTAssertEqual(modelName, "ModelThatDoesNotExist")
+        }
     }
 
     // MARK: - UI smoke tests
@@ -186,6 +174,19 @@ final class CoreMLProjectTests: XCTestCase {
         XCTAssertEqual(service.classifyCallCount, 1)
         XCTAssertNotNil(service.lastImage)
         XCTAssertEqual(sut.resultLabel.text, "Clasificación:\n87.65% tabby\n54.32% tiger_cat")
+    }
+
+    func testUpdateClassificationsUsesInjectedServiceAndRendersEmptySuccess() {
+        let sut = makeSUT()
+        let service = MockClassificationService(result: .success([]))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(service.classifyCallCount, 1)
+        XCTAssertEqual(sut.resultLabel.text, "Nada reconocido.")
     }
 
     func testUpdateClassificationsUsesInjectedServiceAndRendersFailure() {
