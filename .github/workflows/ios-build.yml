@@ -65,5 +65,4 @@ jobs:
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
             -destination "id=$DEST_ID" \
-            CODE_SIGNING_ALLOWED=NO \
             test
