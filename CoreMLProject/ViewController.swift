@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Vision // Importamos Vision para facilitar la integración con Core ML
 
 class ViewController: UIViewController {
 
@@ -45,21 +44,18 @@ class ViewController: UIViewController {
         return label
     }()
 
+    // MARK: - Classification Service
 
-    // MARK: - Core ML Model
-    // Instancia del modelo Core ML.
-    // Usamos optional para evitar crash si el modelo no carga.
-    lazy var classificationRequest: VNCoreMLRequest? = {
+    var classificationService: ImageClassificationServicing? = ViewController.makeDefaultClassificationService()
+
+    private static func makeDefaultClassificationService() -> ImageClassificationServicing? {
         do {
-            return try ModelClassifierFactory.makeRequest(modelName: ModelClassifierFactory.defaultModelName) { [weak self] request, error in
-                self?.processClassifications(for: request, error: error)
-            }
+            return try VisionImageClassificationService(modelName: ModelClassifierFactory.defaultModelName)
         } catch {
             print("⚠️ Failed to load Vision ML model: \(error.localizedDescription)")
             return nil
         }
-    }()
-
+    }
 
     // MARK: - Lifecycle
 
@@ -68,7 +64,7 @@ class ViewController: UIViewController {
         view.backgroundColor = .white
         setupUI()
 
-        if classificationRequest == nil {
+        if classificationService == nil {
             classifyButton.isEnabled = false
             resultLabel.text = "Error: no se pudo cargar el modelo ML."
         }
@@ -127,39 +123,32 @@ class ViewController: UIViewController {
             return
         }
 
-        guard let request = classificationRequest else {
+        guard let service = classificationService else {
             resultLabel.text = "Modelo no disponible. Reinicia la app o verifica el archivo .mlmodel."
             return
         }
 
-        guard let ciImage = CIImage(image: image) else {
-            resultLabel.text = "No se pudo procesar la imagen seleccionada."
-            return
-        }
-
-        // Ejecutar la petición de Vision en un hilo de fondo
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let handler = VNImageRequestHandler(ciImage: ciImage)
-            do {
-                try handler.perform([request])
-            } catch {
-                DispatchQueue.main.async {
-                    self?.resultLabel.text = "Fallo al clasificar: \(error.localizedDescription)"
-                }
+        service.classify(image: image) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.render(result: result)
             }
         }
     }
 
-    func processClassifications(for request: VNRequest, error: Error?) {
-        DispatchQueue.main.async {
-            switch ClassificationPresenter.parsePayload(request.results) {
-            case .success(let items):
-                self.resultLabel.text = ClassificationPresenter.makeSuccessMessage(from: items)
-            case .failure(.missingResults):
-                self.resultLabel.text = ClassificationPresenter.makeFailureMessage(for: error)
-            case .failure(.invalidType):
-                self.resultLabel.text = "Resultado inesperado de Vision (tipo inválido)."
-            }
+    private func render(result: Result<[ClassificationItem], ClassificationServiceError>) {
+        switch result {
+        case .success(let items):
+            resultLabel.text = ClassificationPresenter.makeSuccessMessage(from: items)
+        case .failure(.missingResults(let error)):
+            resultLabel.text = ClassificationPresenter.makeFailureMessage(for: error)
+        case .failure(.invalidResultType):
+            resultLabel.text = "Resultado inesperado de Vision (tipo inválido)."
+        case .failure(.invalidImage):
+            resultLabel.text = "No se pudo procesar la imagen seleccionada."
+        case .failure(.modelUnavailable):
+            resultLabel.text = "Modelo no disponible. Reinicia la app o verifica el archivo .mlmodel."
+        case .failure(.visionFailed(let error)):
+            resultLabel.text = "Fallo al clasificar: \(error.localizedDescription)"
         }
     }
 }
@@ -174,7 +163,10 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
         present(picker, animated: true)
     }
 
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
         picker.dismiss(animated: true)
 
         if let selectedImage = info[.originalImage] as? UIImage {
