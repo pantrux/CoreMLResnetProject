@@ -1,0 +1,13 @@
+included:
+  - CoreMLProject
+  - CoreMLProjectTests
+
+excluded:
+  - CoreMLProject.xcodeproj
+
+only_rules:
+  - empty_count
+  - force_cast
+  - force_try
+  - redundant_optional_initialization
+  - unused_import

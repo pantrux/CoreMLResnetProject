@@ -6,8 +6,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
-    runs-on: macos-latest
+  build-test-and-lint:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,7 +22,25 @@ jobs:
       - name: List schemes
         run: xcodebuild -list -project CoreMLProject.xcodeproj | tee ci-logs/schemes.log
 
-      - name: Detect iOS Simulator destination
+      - name: Install SwiftLint
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v swiftlint >/dev/null 2>&1; then
+            swiftlint version | tee ci-logs/swiftlint-version.log
+          else
+            brew update
+            brew install swiftlint
+            swiftlint version | tee ci-logs/swiftlint-version.log
+          fi
+
+      - name: SwiftLint gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          swiftlint lint --strict --config .swiftlint.yml | tee ci-logs/swiftlint.log
+
+      - name: Detect iOS Simulator destination (strict)
         id: detect_destination
         shell: bash
         run: |
@@ -39,21 +57,17 @@ jobs:
             | grep -v 'placeholder' \
             | head -n1 || true)
 
-          if [ -n "${DEST_ID:-}" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "dest_id=$DEST_ID" >> "$GITHUB_OUTPUT"
-            {
-              echo "## iOS Test Gate"
-              echo "✅ Simulator detectado: \`$DEST_ID\`"
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            {
-              echo "## iOS Test Gate"
-              echo "⚠️ No hay simulador iOS concreto en este runner (solo placeholder)."
-              echo "Se ejecuta build obligatorio y se omiten tests en este entorno."
-            } >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "${DEST_ID:-}" ]; then
+            echo "No concrete iOS Simulator runtime/device available on this runner." | tee -a ci-logs/destinations.log
+            echo "::error::No concrete iOS Simulator runtime/device available on this runner. Test gate is strict and cannot be skipped."
+            exit 1
           fi
+
+          echo "dest_id=$DEST_ID" >> "$GITHUB_OUTPUT"
+          {
+            echo "## iOS Test Gate"
+            echo "✅ Simulator detectado (strict mode): \`$DEST_ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build gate (mandatory)
         shell: bash
@@ -79,8 +93,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build-for-testing | tee ci-logs/build-for-testing.log
 
-      - name: Test gate (run when simulator is available)
-        if: steps.detect_destination.outputs.available == 'true'
+      - name: Test gate (mandatory)
         shell: bash
         run: |
           set -euo pipefail
@@ -92,11 +105,6 @@ jobs:
             -resultBundlePath ci-logs/test-results.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             test | tee ci-logs/test.log
-
-      - name: Test gate (skipped)
-        if: steps.detect_destination.outputs.available != 'true'
-        run: |
-          echo "::warning::No concrete iOS Simulator runtime/device available on this runner. Tests were skipped." | tee ci-logs/test-skipped.log
 
       - name: Upload CI diagnostics artifact
         if: always()

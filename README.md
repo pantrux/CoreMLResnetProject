@@ -46,8 +46,15 @@ Este repo incluye `.gitattributes` con la regla recomendada.
 
 ## CI
 
-Hay un workflow (`.github/workflows/ios-build.yml`) que compila el proyecto en `macos-latest` (simulador) con `CODE_SIGNING_ALLOWED=NO`.
+El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `macos-14`:
+
+- SwiftLint (`.swiftlint.yml`)
+- Build en iOS Simulator
+- Build-for-testing
+- Test en simulador real (strict mode, sin skip)
+
+Además sube artefactos de diagnóstico (`ci-logs`) con logs y `xcresult` para troubleshooting.
 
 ## Licencia
 
-No especificada. (Recomendado: añadir `LICENSE` si se va a compartir públicamente.)
+MIT (`LICENSE`).
