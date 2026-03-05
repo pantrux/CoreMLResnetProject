@@ -16,6 +16,12 @@ jobs:
       - name: Prepare CI diagnostics folder
         run: mkdir -p ci-logs
 
+      - name: Release metadata gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_release_metadata.py | tee ci-logs/release-metadata.log
+
       - name: Validate LFS model availability
         shell: bash
         run: |

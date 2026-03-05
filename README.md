@@ -82,6 +82,13 @@ El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `m
 
 Además sube artefactos de diagnóstico (`ci-logs`) con logs, `xcresult` y reporte de cobertura para troubleshooting.
 
+## Release management
+
+- `VERSION`: versión semántica vigente del proyecto.
+- `CHANGELOG.md`: historial de cambios (Keep a Changelog).
+- `docs/RELEASE.md`: checklist operativa de release.
+- CI incluye **Release metadata gate** para validar formato/versionado mínimo.
+
 ## Licencia
 
 MIT (`LICENSE`).
