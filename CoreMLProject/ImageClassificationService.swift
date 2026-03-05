@@ -9,6 +9,9 @@ enum ClassificationServiceError: Error {
 }
 
 protocol ImageClassificationServicing {
+    /// Clasifica la imagen proporcionada.
+    /// - Note: El closure `completion` puede ser invocado en cualquier hilo.
+    ///         Los llamadores son responsables de volver al hilo principal si es necesario.
     func classify(
         image: UIImage,
         completion: @escaping (Result<[ClassificationItem], ClassificationServiceError>) -> Void
@@ -17,38 +20,49 @@ protocol ImageClassificationServicing {
 
 final class VisionImageClassificationService: ImageClassificationServicing {
     private let visionModel: VNCoreMLModel
+    private let workerQueue: DispatchQueue
 
-    init(modelName: String = ModelClassifierFactory.defaultModelName) throws {
+    init(
+        modelName: String = ModelClassifierFactory.defaultModelName,
+        workerQueue: DispatchQueue = DispatchQueue.global(qos: .userInitiated)
+    ) throws {
         visionModel = try ModelClassifierFactory.makeVisionModel(modelName: modelName)
+        self.workerQueue = workerQueue
     }
 
     func classify(
         image: UIImage,
         completion: @escaping (Result<[ClassificationItem], ClassificationServiceError>) -> Void
     ) {
+        func resolve(_ result: Result<[ClassificationItem], ClassificationServiceError>) {
+            workerQueue.async {
+                completion(result)
+            }
+        }
+
         guard let ciImage = CIImage(image: image) else {
-            completion(.failure(.invalidImage))
+            resolve(.failure(.invalidImage))
             return
         }
 
         let request = VNCoreMLRequest(model: visionModel) { request, error in
             switch ClassificationPresenter.parsePayload(request.results) {
             case .success(let items):
-                completion(.success(items))
+                resolve(.success(items))
             case .failure(.missingResults):
-                completion(.failure(.missingResults(error)))
+                resolve(.failure(.missingResults(error)))
             case .failure(.invalidType):
-                completion(.failure(.invalidResultType))
+                resolve(.failure(.invalidResultType))
             }
         }
         request.imageCropAndScaleOption = .centerCrop
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        workerQueue.async {
             let handler = VNImageRequestHandler(ciImage: ciImage)
             do {
                 try handler.perform([request])
             } catch {
-                completion(.failure(.visionFailed(error)))
+                resolve(.failure(.visionFailed(error)))
             }
         }
     }
