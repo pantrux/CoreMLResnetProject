@@ -51,8 +51,8 @@ class ViewController: UIViewController {
 
     // MARK: - Core ML Model
     // Instancia del modelo Core ML.
-    // Usaremos un lazy var para cargarlo solo cuando sea necesario.
-    lazy var classificationRequest: VNCoreMLRequest = {
+    // Usamos optional para evitar crash si el modelo no carga.
+    lazy var classificationRequest: VNCoreMLRequest? = {
         do {
             // Cargar el modelo generado automáticamente por Core ML
             let model = try VNCoreMLModel(for: Resnet50().model)
@@ -63,7 +63,8 @@ class ViewController: UIViewController {
             request.imageCropAndScaleOption = .centerCrop
             return request
         } catch {
-            fatalError("Failed to load Vision ML model: \(error)")
+            print("⚠️ Failed to load Vision ML model: \(error)")
+            return nil
         }
     }()
 
@@ -74,6 +75,11 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .white
         setupUI()
+
+        if classificationRequest == nil {
+            classifyButton.isEnabled = false
+            resultLabel.text = "Error: no se pudo cargar el modelo ML."
+        }
     }
 
     // MARK: - UI Setup
@@ -126,17 +132,25 @@ class ViewController: UIViewController {
             return
         }
 
+        guard let request = classificationRequest else {
+            resultLabel.text = "Modelo no disponible. Reinicia la app o verifica el archivo .mlmodel."
+            return
+        }
+
         guard let ciImage = CIImage(image: image) else {
-            fatalError("No se pudo convertir UIImage a CIImage.")
+            resultLabel.text = "No se pudo procesar la imagen seleccionada."
+            return
         }
 
         // Ejecutar la petición de Vision en un hilo de fondo
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let handler = VNImageRequestHandler(ciImage: ciImage)
             do {
-                try handler.perform([self.classificationRequest])
+                try handler.perform([request])
             } catch {
-                print("Fallo al realizar la clasificación de Vision: \(error)")
+                DispatchQueue.main.async {
+                    self?.resultLabel.text = "Fallo al clasificar: \(error.localizedDescription)"
+                }
             }
         }
     }
