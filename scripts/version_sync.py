@@ -5,12 +5,7 @@ import re
 import sys
 from pathlib import Path
 
-SEMVER_RE = re.compile(
-    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
-    r"(?:-((?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
-    r"(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?"
-    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
-)
+from semver_utils import SEMVER_RE, semver_core
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,13 +25,6 @@ def parse_args() -> argparse.Namespace:
 def fail(msg: str) -> int:
     print(f"[version-sync] FAIL: {msg}")
     return 1
-
-
-def semver_core(version: str) -> str:
-    match = SEMVER_RE.match(version)
-    if not match:
-        raise ValueError(f"VERSION inválida: '{version}'")
-    return f"{match.group(1)}.{match.group(2)}.{match.group(3)}"
 
 
 def read_version(version_path: Path) -> tuple[str, str]:
@@ -70,7 +58,7 @@ def write_pbxproj(pbxproj_path: Path, content: str) -> None:
 
 
 def extract_marketing_versions(pbxproj_text: str) -> list[str]:
-    return re.findall(r"MARKETING_VERSION = ([^;]+);", pbxproj_text)
+    return [v.strip() for v in re.findall(r"MARKETING_VERSION = ([^;]+);", pbxproj_text)]
 
 
 def sync_pbxproj_marketing_version(pbxproj_text: str, core_version: str) -> tuple[str, int]:
@@ -101,7 +89,7 @@ def run_check(version_path: Path, plist_path: Path, pbxproj_path: Path) -> int:
     if mismatches:
         return fail(
             "MARKETING_VERSION no coincide con VERSION (core). "
-            f"VERSION={version} core={core} marketing_values={sorted(set(marketing_versions))}"
+            f"VERSION={version} core={core} mismatching_values={sorted(set(mismatches))}"
         )
 
     print("[version-sync] PASS")
