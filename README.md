@@ -82,6 +82,12 @@ El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `m
 
 Además sube artefactos de diagnóstico (`ci-logs`) con logs, `xcresult` y reporte de cobertura para troubleshooting.
 
+Hardening anti-stuck aplicado en CI:
+- `concurrency` por rama/PR con `cancel-in-progress: true` para evitar colas de runs obsoletos.
+- `timeout-minutes` en job y pasos críticos (build/build-for-testing/test/detect simulator/install swiftlint).
+- `-destination-timeout 120` en comandos `xcodebuild` relevantes.
+- En fallos de test, se adjunta `simctl list devices` en logs para diagnóstico rápido.
+
 ## Release management
 
 - `VERSION`: versión semántica vigente del proyecto (`x.y.z`, opcional `-prerelease` y `+build`).

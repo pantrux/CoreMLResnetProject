@@ -5,9 +5,14 @@ on:
   push:
     branches: [ main ]
 
+concurrency:
+  group: ios-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-test-and-lint:
     runs-on: macos-14
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,6 +56,7 @@ jobs:
         run: xcodebuild -list -project CoreMLProject.xcodeproj | tee ci-logs/schemes.log
 
       - name: Install SwiftLint
+        timeout-minutes: 8
         shell: bash
         run: |
           set -euo pipefail
@@ -70,6 +76,7 @@ jobs:
 
       - name: Detect iOS Simulator destination (strict)
         id: detect_destination
+        timeout-minutes: 5
         shell: bash
         run: |
           set -euo pipefail
@@ -98,6 +105,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build gate (mandatory)
+        timeout-minutes: 12
         shell: bash
         run: |
           set -euo pipefail
@@ -106,10 +114,12 @@ jobs:
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -destination-timeout 120 \
             CODE_SIGNING_ALLOWED=NO \
             build | tee ci-logs/build.log
 
       - name: Build-for-testing gate (mandatory)
+        timeout-minutes: 12
         shell: bash
         run: |
           set -euo pipefail
@@ -118,22 +128,38 @@ jobs:
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -destination-timeout 120 \
             CODE_SIGNING_ALLOWED=NO \
             build-for-testing | tee ci-logs/build-for-testing.log
 
       - name: Test gate (mandatory)
+        timeout-minutes: 20
         shell: bash
         run: |
           set -euo pipefail
+
+          DEST_ID="${{ steps.detect_destination.outputs.dest_id }}"
+          echo "Running tests on simulator id=$DEST_ID" | tee ci-logs/test.log
+
+          set +e
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
             -sdk iphonesimulator \
-            -destination "id=${{ steps.detect_destination.outputs.dest_id }}" \
+            -destination "id=$DEST_ID" \
+            -destination-timeout 120 \
             -enableCodeCoverage YES \
             -resultBundlePath ci-logs/test-results.xcresult \
             CODE_SIGNING_ALLOWED=NO \
-            test | tee ci-logs/test.log
+            test | tee -a ci-logs/test.log
+          XCODE_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$XCODE_STATUS" -ne 0 ]; then
+            echo "xcodebuild test failed with status $XCODE_STATUS" | tee -a ci-logs/test.log
+            xcrun simctl list devices | tee -a ci-logs/test.log || true
+            exit "$XCODE_STATUS"
+          fi
 
       - name: Coverage gate (mandatory)
         shell: bash
