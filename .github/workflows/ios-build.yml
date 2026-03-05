@@ -144,7 +144,7 @@ jobs:
           python3 scripts/check_coverage.py \
             --report ci-logs/coverage-report.json \
             --target CoreMLProject \
-            --min-line 0.15 | tee ci-logs/coverage-gate.log
+            --min-line 0.30 | tee ci-logs/coverage-gate.log
 
           {
             echo "## Coverage Gate"
