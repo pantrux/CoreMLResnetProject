@@ -9,6 +9,25 @@ final class CoreMLProjectTests: XCTestCase {
         }
     }
 
+    final class MockClassificationService: ImageClassificationServicing {
+        var classifyCallCount = 0
+        var lastImage: UIImage?
+        var result: Result<[ClassificationItem], ClassificationServiceError>
+
+        init(result: Result<[ClassificationItem], ClassificationServiceError>) {
+            self.result = result
+        }
+
+        func classify(
+            image: UIImage,
+            completion: @escaping (Result<[ClassificationItem], ClassificationServiceError>) -> Void
+        ) {
+            classifyCallCount += 1
+            lastImage = image
+            completion(result)
+        }
+    }
+
     func testModelRequestFactoryBuildsClassificationRequest() throws {
         let request = try ModelClassifierFactory.makeRequest(modelName: ModelClassifierFactory.defaultModelName)
 
@@ -97,7 +116,7 @@ final class CoreMLProjectTests: XCTestCase {
         let sut = makeSUT()
 
         sut.imageView.image = makeDummyImage()
-        sut.classificationRequest = nil
+        sut.classificationService = nil
 
         sut.updateClassifications()
 
@@ -105,6 +124,37 @@ final class CoreMLProjectTests: XCTestCase {
             sut.resultLabel.text,
             "Modelo no disponible. Reinicia la app o verifica el archivo .mlmodel."
         )
+    }
+
+    func testUpdateClassificationsUsesInjectedServiceAndRendersSuccess() {
+        let sut = makeSUT()
+        let expectedItems = [
+            ClassificationItem(identifier: "tabby", confidence: 0.8765),
+            ClassificationItem(identifier: "tiger_cat", confidence: 0.5432)
+        ]
+        let service = MockClassificationService(result: .success(expectedItems))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(service.classifyCallCount, 1)
+        XCTAssertNotNil(service.lastImage)
+        XCTAssertEqual(sut.resultLabel.text, "Clasificación:\n87.65% tabby\n54.32% tiger_cat")
+    }
+
+    func testUpdateClassificationsUsesInjectedServiceAndRendersFailure() {
+        let sut = makeSUT()
+        let service = MockClassificationService(result: .failure(.missingResults(DummyClassificationError())))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(service.classifyCallCount, 1)
+        XCTAssertEqual(sut.resultLabel.text, "Incapaz de clasificar la imagen.\nerror-controlado")
     }
 
     // MARK: - Helpers
@@ -121,5 +171,13 @@ final class CoreMLProjectTests: XCTestCase {
             UIColor.systemBlue.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
         }
+    }
+
+    private func flushMainQueue() {
+        let expectation = expectation(description: "Flush main queue")
+        DispatchQueue.main.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
     }
 }

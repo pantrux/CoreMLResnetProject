@@ -15,16 +15,20 @@ enum ModelLoaderError: LocalizedError {
 enum ModelClassifierFactory {
     static let defaultModelName = "Resnet50"
 
-    static func makeRequest(
-        modelName: String = defaultModelName,
-        completionHandler: VNRequestCompletionHandler? = nil
-    ) throws -> VNCoreMLRequest {
+    static func makeVisionModel(modelName: String = defaultModelName) throws -> VNCoreMLModel {
         guard let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc") else {
             throw ModelLoaderError.compiledModelNotFound(modelName)
         }
 
         let mlModel = try MLModel(contentsOf: modelURL)
-        let visionModel = try VNCoreMLModel(for: mlModel)
+        return try VNCoreMLModel(for: mlModel)
+    }
+
+    static func makeRequest(
+        modelName: String = defaultModelName,
+        completionHandler: VNRequestCompletionHandler? = nil
+    ) throws -> VNCoreMLRequest {
+        let visionModel = try makeVisionModel(modelName: modelName)
 
         let request = VNCoreMLRequest(model: visionModel, completionHandler: completionHandler)
         request.imageCropAndScaleOption = .centerCrop
