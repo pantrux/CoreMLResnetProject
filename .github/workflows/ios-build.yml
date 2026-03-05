@@ -19,18 +19,9 @@ jobs:
       - name: List schemes
         run: xcodebuild -list -project CoreMLProject.xcodeproj
 
-      - name: Build (simulator, no codesign)
-        run: |
-          set -e
-          xcodebuild \
-            -project CoreMLProject.xcodeproj \
-            -scheme CoreMLProject \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            build
-
-      - name: Test (simulator when available)
+      - name: Detect iOS Simulator destination
+        id: detect_destination
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -45,17 +36,46 @@ jobs:
             | grep -v 'placeholder' \
             | head -n1 || true)
 
-          if [ -z "${DEST_ID:-}" ]; then
-            echo "::warning::No concrete iOS Simulator runtime/device available on this runner. Skipping tests."
-            exit 0
+          if [ -n "${DEST_ID:-}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "dest_id=$DEST_ID" >> "$GITHUB_OUTPUT"
+            {
+              echo "## iOS Test Gate"
+              echo "✅ Simulator detectado: \`$DEST_ID\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## iOS Test Gate"
+              echo "⚠️ No hay simulador iOS concreto en este runner (solo placeholder)."
+              echo "Se ejecuta build obligatorio y se omiten tests en este entorno."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          echo "Using iOS Simulator destination id=$DEST_ID"
-
+      - name: Build gate (mandatory)
+        run: |
+          set -e
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
             -sdk iphonesimulator \
-            -destination "id=$DEST_ID" \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Test gate (run when simulator is available)
+        if: steps.detect_destination.outputs.available == 'true'
+        run: |
+          set -e
+          xcodebuild \
+            -project CoreMLProject.xcodeproj \
+            -scheme CoreMLProject \
+            -sdk iphonesimulator \
+            -destination "id=${{ steps.detect_destination.outputs.dest_id }}" \
             CODE_SIGNING_ALLOWED=NO \
             test
+
+      - name: Test gate (skipped)
+        if: steps.detect_destination.outputs.available != 'true'
+        run: |
+          echo "::warning::No concrete iOS Simulator runtime/device available on this runner. Tests were skipped."
