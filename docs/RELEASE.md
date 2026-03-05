@@ -9,7 +9,7 @@
 
 ## Release Steps
 
-1. Update `VERSION` and move relevant notes from `[Unreleased]` to a dated version section in `CHANGELOG.md`.
+1. Update `VERSION`, move relevant notes from `## [Unreleased]` to a dated version section in `CHANGELOG.md`, and keep an empty `## [Unreleased]` header in place (required by CI gate).
 2. Merge release PR into `main`.
 3. Create annotated git tag:
    ```bash

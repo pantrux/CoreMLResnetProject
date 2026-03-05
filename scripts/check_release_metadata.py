@@ -20,11 +20,11 @@ def main() -> int:
     if not changelog_path.exists():
         return fail("missing CHANGELOG.md file")
 
-    version = version_path.read_text().strip()
+    version = version_path.read_text(encoding="utf-8").strip()
     if not SEMVER_RE.match(version):
         return fail(f"VERSION must be semver (x.y.z). Got: '{version}'")
 
-    changelog = changelog_path.read_text()
+    changelog = changelog_path.read_text(encoding="utf-8")
 
     if "## [Unreleased]" not in changelog:
         return fail("CHANGELOG.md must include '## [Unreleased]' section")
