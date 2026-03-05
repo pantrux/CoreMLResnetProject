@@ -34,7 +34,18 @@ final class VisionImageClassificationService: ImageClassificationServicing {
         image: UIImage,
         completion: @escaping (Result<[ClassificationItem], ClassificationServiceError>) -> Void
     ) {
+        let completionLock = NSLock()
+        var hasResolved = false
+
         func resolve(_ result: Result<[ClassificationItem], ClassificationServiceError>) {
+            completionLock.lock()
+            defer { completionLock.unlock() }
+
+            guard !hasResolved else {
+                return
+            }
+            hasResolved = true
+
             workerQueue.async {
                 completion(result)
             }
