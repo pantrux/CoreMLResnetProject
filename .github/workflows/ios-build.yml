@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,3 +29,33 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Test (simulator when available)
+        run: |
+          set -euo pipefail
+
+          DESTINATIONS=$(xcodebuild -showdestinations \
+            -project CoreMLProject.xcodeproj \
+            -scheme CoreMLProject)
+
+          echo "$DESTINATIONS"
+
+          DEST_ID=$(echo "$DESTINATIONS" \
+            | sed -nE 's/.*platform:iOS Simulator,.*id:[[:space:]]*([^,]+),.*/\1/p' \
+            | grep -v 'placeholder' \
+            | head -n1 || true)
+
+          if [ -z "${DEST_ID:-}" ]; then
+            echo "::warning::No concrete iOS Simulator runtime/device available on this runner. Skipping tests."
+            exit 0
+          fi
+
+          echo "Using iOS Simulator destination id=$DEST_ID"
+
+          xcodebuild \
+            -project CoreMLProject.xcodeproj \
+            -scheme CoreMLProject \
+            -sdk iphonesimulator \
+            -destination "id=$DEST_ID" \
+            CODE_SIGNING_ALLOWED=NO \
+            test
