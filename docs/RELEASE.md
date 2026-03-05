@@ -4,7 +4,7 @@
 
 - [ ] All required checks are green (`build-test-and-lint`)
 - [ ] `CHANGELOG.md` updated (`[Unreleased]` + release notes)
-- [ ] `VERSION` updated with semantic version (`x.y.z`)
+- [ ] `VERSION` updated with semantic version (`x.y.z`, optional `-prerelease` and `+build`)
 - [ ] PR review comments from bots/humans triaged
 
 ## Release Steps

@@ -84,7 +84,7 @@ Además sube artefactos de diagnóstico (`ci-logs`) con logs, `xcresult` y repor
 
 ## Release management
 
-- `VERSION`: versión semántica vigente del proyecto.
+- `VERSION`: versión semántica vigente del proyecto (`x.y.z`, opcional `-prerelease` y `+build`).
 - `CHANGELOG.md`: historial de cambios (Keep a Changelog).
 - `docs/RELEASE.md`: checklist operativa de release.
 - CI incluye **Release metadata gate** para validar formato/versionado mínimo.

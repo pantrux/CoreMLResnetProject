@@ -3,7 +3,12 @@ import re
 import sys
 from pathlib import Path
 
-SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+SEMVER_RE = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-((?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
+)
 
 
 def fail(msg: str) -> int:
@@ -22,7 +27,10 @@ def main() -> int:
 
     version = version_path.read_text(encoding="utf-8").strip()
     if not SEMVER_RE.match(version):
-        return fail(f"VERSION must be semver (x.y.z). Got: '{version}'")
+        return fail(
+            "VERSION must follow semver (x.y.z, optional -prerelease and +build metadata). "
+            f"Got: '{version}'"
+        )
 
     changelog = changelog_path.read_text(encoding="utf-8")
 
