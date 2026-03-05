@@ -9,6 +9,8 @@ App iOS (UIKit) minimal para **clasificar imágenes** usando **Core ML + Vision*
   - `CoreMLProject/AppDelegate.swift`
   - `CoreMLProject/SceneDelegate.swift`
   - `CoreMLProject/ViewController.swift`
+  - `CoreMLProject/ModelClassifierFactory.swift`
+  - `CoreMLProject/ClassificationPresenter.swift`
 - Recursos:
   - `CoreMLProject/Resnet50.mlmodel`
   - `CoreMLProject/Info.plist` (incluye `NSPhotoLibraryUsageDescription`)

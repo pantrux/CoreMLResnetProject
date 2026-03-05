@@ -9,6 +9,8 @@
 		44AC9E6FC8178FF49DF98BD5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9D398B2ADD0B5E28A8E814 /* AppDelegate.swift */; };
 		87CED24DD3556AD1E819671F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B669FE8D174981352F313D /* SceneDelegate.swift */; };
 		07A775F8F5ABF06FE1C42619 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF01EE24820BB61B5384FA9 /* ViewController.swift */; };
+		B1C2D3E4F5061728394A5B6C /* ModelClassifierFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* ModelClassifierFactory.swift */; };
+		D1E2F30415263748A9B6C7D8 /* ClassificationPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F40516273849A5B6C7 /* ClassificationPresenter.swift */; };
 		123EFA9B77D5BB8A32EE340C /* Resnet50.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = CB7B54E5DCA4D20C72A8CFD9 /* Resnet50.mlmodel */; };
 		C34DDA8821AA6C9FD4901E54 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3580D5ED3AF8D877CBC60D1 /* Assets.xcassets */; };
 		5A39389BAC113B293FEF4A84 /* CoreMLProjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1313352E6DC49F9D63C147C /* CoreMLProjectTests.swift */; };
@@ -30,6 +32,8 @@
 		EF9D398B2ADD0B5E28A8E814 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C7B669FE8D174981352F313D /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		ADF01EE24820BB61B5384FA9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* ModelClassifierFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelClassifierFactory.swift; sourceTree = "<group>"; };
+		C1D2E3F40516273849A5B6C7 /* ClassificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassificationPresenter.swift; sourceTree = "<group>"; };
 		CB7B54E5DCA4D20C72A8CFD9 /* Resnet50.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = Resnet50.mlmodel; sourceTree = "<group>"; };
 		C3580D5ED3AF8D877CBC60D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B7B89ECF9FA3FCD38C28D1EC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -58,6 +62,8 @@
 				EF9D398B2ADD0B5E28A8E814 /* AppDelegate.swift */,
 				C7B669FE8D174981352F313D /* SceneDelegate.swift */,
 				ADF01EE24820BB61B5384FA9 /* ViewController.swift */,
+				A1B2C3D4E5F60718293A4B5C /* ModelClassifierFactory.swift */,
+				C1D2E3F40516273849A5B6C7 /* ClassificationPresenter.swift */,
 				CB7B54E5DCA4D20C72A8CFD9 /* Resnet50.mlmodel */,
 				C3580D5ED3AF8D877CBC60D1 /* Assets.xcassets */,
 				B7B89ECF9FA3FCD38C28D1EC /* Info.plist */,
@@ -131,7 +137,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		DA10D9DD089DF2AFEBC5ED5A /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (07A775F8F5ABF06FE1C42619 /* ViewController.swift in Sources */, 44AC9E6FC8178FF49DF98BD5 /* AppDelegate.swift in Sources */, 87CED24DD3556AD1E819671F /* SceneDelegate.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
+		DA10D9DD089DF2AFEBC5ED5A /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (07A775F8F5ABF06FE1C42619 /* ViewController.swift in Sources */, B1C2D3E4F5061728394A5B6C /* ModelClassifierFactory.swift in Sources */, D1E2F30415263748A9B6C7D8 /* ClassificationPresenter.swift in Sources */, 44AC9E6FC8178FF49DF98BD5 /* AppDelegate.swift in Sources */, 87CED24DD3556AD1E819671F /* SceneDelegate.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
 		8F11E0AE1293B031D2165BF2 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (5A39389BAC113B293FEF4A84 /* CoreMLProjectTests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
