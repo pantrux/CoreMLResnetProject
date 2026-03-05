@@ -30,7 +30,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Test (simulator, concrete device, no codesign)
+      - name: Test (best available destination, no codesign)
         run: |
           set -euo pipefail
 
@@ -41,20 +41,29 @@ jobs:
           echo "$DESTINATIONS"
 
           DEST_ID=$(echo "$DESTINATIONS" \
-            | sed -nE 's/.*platform:iOS Simulator,.*id:[[:space:]]*([0-9A-Fa-f-]{36}).*/\1/p' \
-            | head -n1)
+            | sed -nE 's/.*platform:iOS Simulator,.*id:[[:space:]]*([^,]+),.*/\1/p' \
+            | grep -v 'placeholder' \
+            | head -n1 || true)
+
+          DEST_KIND="iOS Simulator"
 
           if [ -z "${DEST_ID:-}" ]; then
-            echo "No iOS Simulator destination found"
+            DEST_ID=$(echo "$DESTINATIONS" \
+              | sed -nE 's/.*platform:macOS,.*id:[[:space:]]*([^,]+),.*/\1/p' \
+              | head -n1 || true)
+            DEST_KIND="macOS (Designed for iPad/iPhone)"
+          fi
+
+          if [ -z "${DEST_ID:-}" ]; then
+            echo "No compatible destination found"
             exit 1
           fi
 
-          echo "Using simulator destination id=$DEST_ID"
+          echo "Using destination ($DEST_KIND): id=$DEST_ID"
 
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
-            -sdk iphonesimulator \
             -destination "id=$DEST_ID" \
             CODE_SIGNING_ALLOWED=NO \
             test
