@@ -37,7 +37,8 @@ jobs:
           DEST_ID=$(xcodebuild -showdestinations \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
-            | sed -n 's/.*platform:iOS Simulator, id:\([^,]*\),.*/\1/p' \
+            | sed -n 's/.*platform:iOS Simulator, id:\([0-9A-F-][0-9A-F-]*\),.*/\1/p' \
+            | grep -E '^[0-9A-F-]{36}$' \
             | head -n1)
 
           if [ -z "${DEST_ID:-}" ]; then
