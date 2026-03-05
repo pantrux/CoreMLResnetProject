@@ -26,7 +26,6 @@ class ViewController: UIViewController {
         let button = UIButton(type: .system)
         button.setTitle("Seleccionar Imagen", for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(selectImageTapped), for: .touchUpInside)
         return button
     }()
 
@@ -34,7 +33,6 @@ class ViewController: UIViewController {
         let button = UIButton(type: .system)
         button.setTitle("Clasificar Imagen", for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(classifyImageTapped), for: .touchUpInside)
         button.isEnabled = false // Deshabilitado hasta que haya una imagen
         return button
     }()
@@ -54,8 +52,15 @@ class ViewController: UIViewController {
     // Usamos optional para evitar crash si el modelo no carga.
     lazy var classificationRequest: VNCoreMLRequest? = {
         do {
-            // Cargar el modelo generado automáticamente por Core ML
-            let model = try VNCoreMLModel(for: Resnet50().model)
+            // Cargar el modelo compilado desde el bundle (evita depender de clase auto-generada)
+            guard let modelURL = Bundle.main.url(forResource: "Resnet50", withExtension: "mlmodelc") else {
+                print("⚠️ No se encontró Resnet50.mlmodelc en el bundle")
+                return nil
+            }
+
+            let mlModel = try MLModel(contentsOf: modelURL)
+            let model = try VNCoreMLModel(for: mlModel)
+
             let request = VNCoreMLRequest(model: model, completionHandler: { [weak self] request, error in
                 self?.processClassifications(for: request, error: error)
             })
@@ -85,6 +90,9 @@ class ViewController: UIViewController {
     // MARK: - UI Setup
 
     private func setupUI() {
+        selectImageButton.addTarget(self, action: #selector(selectImageTapped), for: .touchUpInside)
+        classifyButton.addTarget(self, action: #selector(classifyImageTapped), for: .touchUpInside)
+
         view.addSubview(imageView)
         view.addSubview(selectImageButton)
         view.addSubview(classifyButton)
