@@ -11,10 +11,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: false
+          lfs: true
 
       - name: Prepare CI diagnostics folder
         run: mkdir -p ci-logs
+
+      - name: Validate LFS model availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs ls-files | tee ci-logs/git-lfs-files.log
+
+          MODEL_PATH="CoreMLProject/Resnet50.mlmodel"
+          MODEL_SIZE=$(wc -c < "$MODEL_PATH")
+          echo "model_size_bytes=$MODEL_SIZE" | tee ci-logs/model-size.log
+
+          # Pointer file is ~130 bytes; require real payload for build.
+          if [ "$MODEL_SIZE" -lt 1000000 ]; then
+            echo "::error::Resnet50.mlmodel parece no haberse descargado desde LFS (archivo demasiado pequeño)."
+            exit 1
+          fi
 
       - name: Xcode version
         run: xcodebuild -version | tee ci-logs/xcode-version.log
