@@ -34,11 +34,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          DEST_ID=$(xcodebuild -showdestinations \
+          DESTINATIONS=$(xcodebuild -showdestinations \
             -project CoreMLProject.xcodeproj \
-            -scheme CoreMLProject \
-            | sed -n 's/.*platform:iOS Simulator, id:\([0-9A-Fa-f-][0-9A-Fa-f-]*\),.*/\1/p' \
-            | grep -E '^[0-9A-Fa-f-]{36}$' \
+            -scheme CoreMLProject)
+
+          echo "$DESTINATIONS"
+
+          DEST_ID=$(echo "$DESTINATIONS" \
+            | sed -nE 's/.*platform:iOS Simulator,.*id:[[:space:]]*([0-9A-Fa-f-]{36}).*/\1/p' \
             | head -n1)
 
           if [ -z "${DEST_ID:-}" ]; then
