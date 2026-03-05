@@ -33,16 +33,26 @@ App iOS (UIKit) minimal para **clasificar imágenes** usando **Core ML + Vision*
 - Vision usa `VNCoreMLRequest` con `imageCropAndScaleOption = .centerCrop` (el modelo espera `224x224`).
 - Inferencia en background, UI update en main.
 
-## Git LFS (recomendado)
+## Git LFS (obligatorio para el modelo)
 
-El archivo `.mlmodel` es grande. Si vas a iterar con modelos o el repo crece, conviene usar Git LFS:
+`Resnet50.mlmodel` se versiona con **Git LFS**.
+
+Setup local recomendado:
 
 ```bash
-git lfs install
-git lfs track "*.mlmodel"
+./scripts/setup_model_assets.sh
 ```
 
-Este repo incluye `.gitattributes` con la regla recomendada.
+Esto instala hooks LFS locales y descarga el modelo.
+
+Si prefieres manual:
+
+```bash
+git lfs install --local
+git lfs pull --include="CoreMLProject/Resnet50.mlmodel"
+```
+
+Este repo incluye `.gitattributes` con la regla de tracking.
 
 ## Testing
 
@@ -57,6 +67,7 @@ La suite (`CoreMLProjectTests`) valida:
 
 El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `macos-14`:
 
+- Checkout con `lfs: true` + validación de tamaño del modelo
 - SwiftLint (`.swiftlint.yml`)
 - Build en iOS Simulator
 - Build-for-testing
