@@ -71,12 +71,7 @@ La suite (`CoreMLProjectTests`) valida:
 
 ## CI
 
-Workflows:
-
-- **iOS Build** (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `macos-14`.
-- **CI Liveness (fast)** (`.github/workflows/ci-liveness.yml`) corre en `ubuntu-latest` y sirve como *ping* barato para verificar que GitHub Actions está disparando eventos.
-
-El workflow iOS (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `macos-14`:
+El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `macos-14`:
 
 - Checkout con `lfs: true` + validación de tamaño del modelo
 - SwiftLint (`.swiftlint.yml`)
@@ -93,10 +88,6 @@ Hardening anti-stuck aplicado en CI:
 - `timeout-minutes` en job y pasos críticos (build/build-for-testing/test/detect simulator/install swiftlint).
 - `-destination-timeout 120` en comandos `xcodebuild` relevantes.
 - En fallos de test, se adjunta `simctl list devices` en logs para diagnóstico rápido.
-
-Diagnóstico rápido (si no ves runs en `push`):
-- Si **CI Liveness (fast)** sí corre pero **iOS Build** no: dispara `iOS Build` manualmente con `workflow_dispatch` e investiga cola/runner.
-- Si **ninguno** corre: probablemente el workflow está deshabilitado a nivel repo o hay un incidente de GitHub Actions; re-habilitar el workflow y reintentar.
 
 ## Release management
 
