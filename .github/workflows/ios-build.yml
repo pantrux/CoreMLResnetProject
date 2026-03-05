@@ -13,11 +13,14 @@ jobs:
         with:
           lfs: false
 
+      - name: Prepare CI diagnostics folder
+        run: mkdir -p ci-logs
+
       - name: Xcode version
-        run: xcodebuild -version
+        run: xcodebuild -version | tee ci-logs/xcode-version.log
 
       - name: List schemes
-        run: xcodebuild -list -project CoreMLProject.xcodeproj
+        run: xcodebuild -list -project CoreMLProject.xcodeproj | tee ci-logs/schemes.log
 
       - name: Detect iOS Simulator destination
         id: detect_destination
@@ -29,7 +32,7 @@ jobs:
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject)
 
-          echo "$DESTINATIONS"
+          echo "$DESTINATIONS" | tee ci-logs/destinations.log
 
           DEST_ID=$(echo "$DESTINATIONS" \
             | sed -nE 's/.*platform:iOS Simulator,.*id:[[:space:]]*([^,]+),.*/\1/p' \
@@ -53,40 +56,52 @@ jobs:
           fi
 
       - name: Build gate (mandatory)
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            build | tee ci-logs/build.log
 
       - name: Build-for-testing gate (mandatory)
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            build-for-testing
+            build-for-testing | tee ci-logs/build-for-testing.log
 
       - name: Test gate (run when simulator is available)
         if: steps.detect_destination.outputs.available == 'true'
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           xcodebuild \
             -project CoreMLProject.xcodeproj \
             -scheme CoreMLProject \
             -sdk iphonesimulator \
             -destination "id=${{ steps.detect_destination.outputs.dest_id }}" \
+            -resultBundlePath ci-logs/test-results.xcresult \
             CODE_SIGNING_ALLOWED=NO \
-            test
+            test | tee ci-logs/test.log
 
       - name: Test gate (skipped)
         if: steps.detect_destination.outputs.available != 'true'
         run: |
-          echo "::warning::No concrete iOS Simulator runtime/device available on this runner. Tests were skipped."
+          echo "::warning::No concrete iOS Simulator runtime/device available on this runner. Tests were skipped." | tee ci-logs/test-skipped.log
+
+      - name: Upload CI diagnostics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-diagnostics-${{ github.run_id }}
+          path: ci-logs
+          if-no-files-found: warn
