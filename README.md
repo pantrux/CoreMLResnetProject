@@ -44,6 +44,15 @@ git lfs track "*.mlmodel"
 
 Este repo incluye `.gitattributes` con la regla recomendada.
 
+## Testing
+
+La suite (`CoreMLProjectTests`) valida:
+
+- Carga del request Core ML (`ModelClassifierFactory`)
+- Formateo de salida top-2 para clasificación
+- Casos edge de payload (`missingResults`, `invalidType`)
+- Mensajes de error con y sin detalle
+
 ## CI
 
 El workflow (`.github/workflows/ios-build.yml`) ejecuta gates obligatorios en `macos-14`:

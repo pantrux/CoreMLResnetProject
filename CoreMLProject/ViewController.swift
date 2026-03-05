@@ -39,6 +39,52 @@ enum ModelClassifierFactory {
     }
 }
 
+enum ClassificationPayloadError: Error {
+    case missingResults
+    case invalidType
+}
+
+struct ClassificationItem: Equatable {
+    let identifier: String
+    let confidence: Float
+}
+
+enum ClassificationPresenter {
+    static func parsePayload(_ payload: Any?) -> Result<[ClassificationItem], ClassificationPayloadError> {
+        guard let payload else {
+            return .failure(.missingResults)
+        }
+
+        guard let classifications = payload as? [VNClassificationObservation] else {
+            return .failure(.invalidType)
+        }
+
+        let items = classifications.map {
+            ClassificationItem(identifier: $0.identifier, confidence: $0.confidence)
+        }
+
+        return .success(items)
+    }
+
+    static func makeSuccessMessage(from items: [ClassificationItem], topCount: Int = 2) -> String {
+        guard !items.isEmpty else {
+            return "Nada reconocido."
+        }
+
+        let topClassifications = items.prefix(topCount)
+        let descriptions = topClassifications.map { item in
+            String(format: "%.2f", item.confidence * 100) + "% " + item.identifier
+        }
+
+        return "Clasificación:\n" + descriptions.joined(separator: "\n")
+    }
+
+    static func makeFailureMessage(for error: Error?) -> String {
+        let detail = error?.localizedDescription ?? "(sin detalle)"
+        return "Incapaz de clasificar la imagen.\n\(detail)"
+    }
+}
+
 class ViewController: UIViewController {
 
     // MARK: - UI Elements
@@ -183,28 +229,13 @@ class ViewController: UIViewController {
 
     func processClassifications(for request: VNRequest, error: Error?) {
         DispatchQueue.main.async {
-            guard let results = request.results else {
-                let err = error?.localizedDescription ?? "(sin detalle)"
-                self.resultLabel.text = "Incapaz de clasificar la imagen.\n\(err)"
-                return
-            }
-
-            // The classification request handler returns an array of VNClassificationObservation objects.
-            guard let classifications = results as? [VNClassificationObservation] else {
+            switch ClassificationPresenter.parsePayload(request.results) {
+            case .success(let items):
+                self.resultLabel.text = ClassificationPresenter.makeSuccessMessage(from: items)
+            case .failure(.missingResults):
+                self.resultLabel.text = ClassificationPresenter.makeFailureMessage(for: error)
+            case .failure(.invalidType):
                 self.resultLabel.text = "Resultado inesperado de Vision (tipo inválido)."
-                return
-            }
-
-            if classifications.isEmpty {
-                self.resultLabel.text = "Nada reconocido."
-            } else {
-                // Display top 2 classifications
-                let topClassifications = classifications.prefix(2)
-                let descriptions = topClassifications.map { classification in
-                    // Format the classification for display.
-                    return String(format: "%.2f", classification.confidence * 100) + "% " + classification.identifier
-                }
-                self.resultLabel.text = "Clasificación:\n" + descriptions.joined(separator: "\n")
             }
         }
     }
