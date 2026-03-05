@@ -1,0 +1,57 @@
+name: CI Liveness (fast)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Principio: workflow ultra-barato para detectar si GitHub Actions está disparando eventos.
+# Útil cuando el workflow iOS (macos) no aparece en push/PR por colas, runners o flakiness.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-liveness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Nota: evitar interpolar contexts directamente dentro de `run:`.
+    # https://docs.github.com/actions/security-guides/security-hardening-for-github-actions
+    env:
+      CI_EVENT_NAME: ${{ github.event_name }}
+      CI_REF: ${{ github.ref }}
+      CI_SHA: ${{ github.sha }}
+      CI_ACTOR: ${{ github.actor }}
+
+    steps:
+      # Intencionalmente SIN checkout: este workflow no necesita archivos del repo.
+
+      - name: Emit context
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "event=$CI_EVENT_NAME"
+          echo "ref=$CI_REF"
+          echo "sha=$CI_SHA"
+          echo "actor=$CI_ACTOR"
+
+      - name: Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## CI Liveness (fast)"
+            echo ""
+            echo "Ping barato (Ubuntu) para comprobar triggers de Actions."
+            echo ""
+            echo "- event: \`$CI_EVENT_NAME\`"
+            echo "- ref: \`$CI_REF\`"
+            echo "- sha: \`$CI_SHA\`"
+            echo "- actor: \`$CI_ACTOR\`"
+          } >> "$GITHUB_STEP_SUMMARY"
