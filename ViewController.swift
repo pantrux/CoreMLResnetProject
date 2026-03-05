@@ -144,12 +144,16 @@ class ViewController: UIViewController {
     func processClassifications(for request: VNRequest, error: Error?) {
         DispatchQueue.main.async {
             guard let results = request.results else {
-                self.resultLabel.text = "Incapaz de clasificar la imagen.\n\(error!.localizedDescription)"
+                let err = error?.localizedDescription ?? "(sin detalle)"
+                self.resultLabel.text = "Incapaz de clasificar la imagen.\n\(err)"
                 return
             }
 
             // The classification request handler returns an array of VNClassificationObservation objects.
-            let classifications = results as! [VNClassificationObservation]
+            guard let classifications = results as? [VNClassificationObservation] else {
+                self.resultLabel.text = "Resultado inesperado de Vision (tipo inválido)."
+                return
+            }
 
             if classifications.isEmpty {
                 self.resultLabel.text = "Nada reconocido."
@@ -176,7 +180,7 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
         present(picker, animated: true)
     }
 
-    func imagePickerController(_ picker: UIImageController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true)
 
         if let selectedImage = info[.originalImage] as? UIImage {
