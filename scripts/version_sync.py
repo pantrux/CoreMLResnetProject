@@ -80,17 +80,24 @@ def run_check(version_path: Path, plist_path: Path, pbxproj_path: Path) -> int:
         return fail("No se encontraron MARKETING_VERSION en project.pbxproj")
 
     mismatches = [v for v in marketing_versions if v != core]
+
+    errors = []
     if plist_version != core:
-        return fail(
+        errors.append(
             "CFBundleShortVersionString no coincide con VERSION (core). "
             f"VERSION={version} core={core} plist={plist_version}"
         )
 
     if mismatches:
-        return fail(
+        errors.append(
             "MARKETING_VERSION no coincide con VERSION (core). "
             f"VERSION={version} core={core} mismatching_values={sorted(set(mismatches))}"
         )
+
+    if errors:
+        for error in errors:
+            print(f"[version-sync] FAIL: {error}")
+        return 1
 
     print("[version-sync] PASS")
     print(f"[version-sync] VERSION={version}")
