@@ -5,7 +5,7 @@ import re
 import sys
 from pathlib import Path
 
-from semver_utils import SEMVER_RE, semver_core
+from semver_utils import semver_core
 
 
 def parse_args() -> argparse.Namespace:
