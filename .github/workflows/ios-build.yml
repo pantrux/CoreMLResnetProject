@@ -22,6 +22,12 @@ jobs:
           set -euo pipefail
           python3 scripts/check_release_metadata.py | tee ci-logs/release-metadata.log
 
+      - name: Version sync gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/version_sync.py --mode check | tee ci-logs/version-sync.log
+
       - name: Validate LFS model availability
         shell: bash
         run: |
