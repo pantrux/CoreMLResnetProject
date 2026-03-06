@@ -135,26 +135,16 @@ class ViewController: UIViewController {
         }
     }
 
-    private let maxDisplayedClassifications = 3
-    private let minimumDisplayedConfidence: Float = 0.20
+    // MARK: - Presentation
+
+    var classificationConfig: ClassificationConfigProviding = DefaultClassificationConfig()
+
+    lazy var resultPresenter: ClassificationResultPresenting = ClassificationResultPresenter(
+        config: classificationConfig
+    )
 
     private func render(result: Result<[ClassificationItem], ClassificationServiceError>) {
-        switch result {
-        case .success(let items):
-            resultLabel.text = ClassificationPresenter.makeSuccessMessage(
-                from: items,
-                topCount: maxDisplayedClassifications,
-                minConfidence: minimumDisplayedConfidence
-            )
-        case .failure(.missingResults(let error)):
-            resultLabel.text = ClassificationPresenter.makeFailureMessage(for: error)
-        case .failure(.invalidResultType):
-            resultLabel.text = "Resultado inesperado de Vision (tipo inválido)."
-        case .failure(.invalidImage):
-            resultLabel.text = "No se pudo procesar la imagen seleccionada."
-        case .failure(.visionFailed(let error)):
-            resultLabel.text = "Fallo al clasificar: \(error.localizedDescription)"
-        }
+        resultLabel.text = resultPresenter.message(for: result)
     }
 }
 
