@@ -43,13 +43,13 @@ curl -sS --fail \
 # Requiere GH_TOKEN con permisos repo/workflow
 export GH_TOKEN="<token>"
 
-curl -s -X POST \
+curl -sS --fail -X POST \
   -H "Authorization: Bearer $GH_TOKEN" \
   -H "Accept: application/vnd.github+json" \
   https://api.github.com/repos/pantrux/CoreMLResnetProject/actions/workflows/ci-liveness.yml/dispatches \
   -d '{"ref":"main"}'
 
-curl -s -X POST \
+curl -sS --fail -X POST \
   -H "Authorization: Bearer $GH_TOKEN" \
   -H "Accept: application/vnd.github+json" \
   https://api.github.com/repos/pantrux/CoreMLResnetProject/actions/workflows/ios-build.yml/dispatches \
