@@ -135,10 +135,17 @@ class ViewController: UIViewController {
         }
     }
 
+    private let maxDisplayedClassifications = 3
+    private let minimumDisplayedConfidence: Float = 0.20
+
     private func render(result: Result<[ClassificationItem], ClassificationServiceError>) {
         switch result {
         case .success(let items):
-            resultLabel.text = ClassificationPresenter.makeSuccessMessage(from: items)
+            resultLabel.text = ClassificationPresenter.makeSuccessMessage(
+                from: items,
+                topCount: maxDisplayedClassifications,
+                minConfidence: minimumDisplayedConfidence
+            )
         case .failure(.missingResults(let error)):
             resultLabel.text = ClassificationPresenter.makeFailureMessage(for: error)
         case .failure(.invalidResultType):

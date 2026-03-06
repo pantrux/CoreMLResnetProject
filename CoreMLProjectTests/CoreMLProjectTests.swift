@@ -60,6 +60,58 @@ final class CoreMLProjectTests: XCTestCase {
         XCTAssertEqual(message, "Nada reconocido.")
     }
 
+    func testClassificationMessageSupportsTopThreeWhenRequested() {
+        let items = [
+            ClassificationItem(identifier: "tabby", confidence: 0.8765),
+            ClassificationItem(identifier: "tiger_cat", confidence: 0.5432),
+            ClassificationItem(identifier: "chair", confidence: 0.3234),
+            ClassificationItem(identifier: "notebook", confidence: 0.2234)
+        ]
+
+        let message = ClassificationPresenter.makeSuccessMessage(from: items, topCount: 3)
+
+        XCTAssertEqual(
+            message,
+            "Clasificación:\n87.65% tabby\n54.32% tiger_cat\n32.34% chair"
+        )
+        XCTAssertFalse(message.contains("notebook"))
+    }
+
+    func testClassificationMessageAppliesConfidenceThreshold() {
+        let items = [
+            ClassificationItem(identifier: "tabby", confidence: 0.8765),
+            ClassificationItem(identifier: "tiger_cat", confidence: 0.5432),
+            ClassificationItem(identifier: "chair", confidence: 0.1234)
+        ]
+
+        let message = ClassificationPresenter.makeSuccessMessage(
+            from: items,
+            topCount: 3,
+            minConfidence: 0.20
+        )
+
+        XCTAssertEqual(
+            message,
+            "Clasificación:\n87.65% tabby\n54.32% tiger_cat"
+        )
+        XCTAssertFalse(message.contains("chair"))
+    }
+
+    func testClassificationMessageWhenThresholdFiltersEverything() {
+        let items = [
+            ClassificationItem(identifier: "chair", confidence: 0.1234),
+            ClassificationItem(identifier: "table", confidence: 0.1134)
+        ]
+
+        let message = ClassificationPresenter.makeSuccessMessage(
+            from: items,
+            topCount: 3,
+            minConfidence: 0.20
+        )
+
+        XCTAssertEqual(message, "Sin resultados con confianza suficiente.")
+    }
+
     func testParsePayloadReturnsMissingResultsWhenPayloadIsNil() {
         let result = ClassificationPresenter.parsePayload(nil)
 
@@ -162,7 +214,9 @@ final class CoreMLProjectTests: XCTestCase {
         let sut = makeSUT()
         let expectedItems = [
             ClassificationItem(identifier: "tabby", confidence: 0.8765),
-            ClassificationItem(identifier: "tiger_cat", confidence: 0.5432)
+            ClassificationItem(identifier: "tiger_cat", confidence: 0.5432),
+            ClassificationItem(identifier: "chair", confidence: 0.3234),
+            ClassificationItem(identifier: "notebook", confidence: 0.2234)
         ]
         let service = MockClassificationService(result: .success(expectedItems))
         sut.classificationService = service
@@ -173,7 +227,11 @@ final class CoreMLProjectTests: XCTestCase {
 
         XCTAssertEqual(service.classifyCallCount, 1)
         XCTAssertNotNil(service.lastImage)
-        XCTAssertEqual(sut.resultLabel.text, "Clasificación:\n87.65% tabby\n54.32% tiger_cat")
+        XCTAssertEqual(
+            sut.resultLabel.text,
+            "Clasificación:\n87.65% tabby\n54.32% tiger_cat\n32.34% chair"
+        )
+        XCTAssertFalse(sut.resultLabel.text?.contains("notebook") ?? false)
     }
 
     func testUpdateClassificationsUsesInjectedServiceAndRendersEmptySuccess() {
@@ -187,6 +245,22 @@ final class CoreMLProjectTests: XCTestCase {
 
         XCTAssertEqual(service.classifyCallCount, 1)
         XCTAssertEqual(sut.resultLabel.text, "Nada reconocido.")
+    }
+
+    func testUpdateClassificationsRendersThresholdMessageWhenNoItemPassesMinimumConfidence() {
+        let sut = makeSUT()
+        let service = MockClassificationService(result: .success([
+            ClassificationItem(identifier: "chair", confidence: 0.1234),
+            ClassificationItem(identifier: "table", confidence: 0.1134)
+        ]))
+        sut.classificationService = service
+        sut.imageView.image = makeDummyImage()
+
+        sut.updateClassifications()
+        flushMainQueue()
+
+        XCTAssertEqual(service.classifyCallCount, 1)
+        XCTAssertEqual(sut.resultLabel.text, "Sin resultados con confianza suficiente.")
     }
 
     func testUpdateClassificationsUsesInjectedServiceAndRendersFailure() {
