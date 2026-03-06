@@ -33,6 +33,7 @@ fi
 CURL_CONNECT_TIMEOUT="${CURL_CONNECT_TIMEOUT:-10}"
 CURL_MAX_TIME="${CURL_MAX_TIME:-30}"
 CURL_RETRY="${CURL_RETRY:-2}"
+CURL_RETRY_DELAY="${CURL_RETRY_DELAY:-1}"
 CURL_RETRY_MAX_TIME="${CURL_RETRY_MAX_TIME:-70}"
 
 mkdir -p "$OUT_DIR"
@@ -43,7 +44,7 @@ api() {
     --connect-timeout "$CURL_CONNECT_TIMEOUT" \
     --max-time "$CURL_MAX_TIME" \
     --retry "$CURL_RETRY" \
-    --retry-delay 1 \
+    --retry-delay "$CURL_RETRY_DELAY" \
     --retry-max-time "$CURL_RETRY_MAX_TIME" \
     ${CURL_RETRY_ALL_ERRORS_FLAG:+$CURL_RETRY_ALL_ERRORS_FLAG} \
     -H "Authorization: Bearer ${GH_TOKEN}" \
