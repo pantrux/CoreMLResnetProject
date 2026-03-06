@@ -89,6 +89,19 @@ Hardening anti-stuck aplicado en CI:
 - `-destination-timeout 120` en comandos `xcodebuild` relevantes.
 - En fallos de test, se adjunta `simctl list devices` en logs para diagnóstico rápido.
 
+### Trigger matrix + runbook (PR-25)
+
+Para incidentes de “no disparó Actions”, usar:
+- `docs/CI_TRIGGER_RUNBOOK.md` (matriz de triggers + flujo de diagnóstico)
+- `scripts/ci_trigger_probe.sh` (recolecta evidencia JSON/summary en `ci-evidence/`)
+
+Uso rápido:
+
+```bash
+export GH_TOKEN="<token>"
+bash scripts/ci_trigger_probe.sh
+```
+
 ## Release management
 
 - `VERSION`: versión semántica vigente del proyecto (`x.y.z`, opcional `-prerelease` y `+build`).
