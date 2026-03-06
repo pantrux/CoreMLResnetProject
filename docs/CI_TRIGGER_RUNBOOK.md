@@ -79,7 +79,8 @@ Artifacts automáticos post-merge (workflow `Post-merge CI Evidence`):
 Validación mínima post-merge:
 - Debe existir al menos 1 run `push` en `ci-liveness` para el `HEAD_SHA` mergeado.
 - Debe existir al menos 1 run `push` en `ios-build` para el mismo `HEAD_SHA`.
-- Si alguna condición falla, el workflow post-merge marca error para alertar regresión de triggers.
+- El script aplica polling defensivo (hasta `MAX_ATTEMPTS`, default 10, con `SLEEP_SECONDS`, default 15) para evitar falsos positivos por arranque asíncrono de workflows.
+- Si alguna condición falla al agotar polling, el workflow post-merge marca error para alertar regresión de triggers.
 
 ## Diagnóstico por síntomas
 
