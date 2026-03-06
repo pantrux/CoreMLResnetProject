@@ -78,6 +78,8 @@ enum ClassificationPresenter {
             return "Nada reconocido."
         }
 
+        // Precondición: `items` debe venir ordenado por confianza descendente
+        // (Vision normalmente entrega resultados en ese orden).
         let filteredItems: [ClassificationItem]
         if let minConfidence {
             filteredItems = items.filter { $0.confidence >= minConfidence }
