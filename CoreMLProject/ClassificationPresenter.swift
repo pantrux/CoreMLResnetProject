@@ -27,12 +27,26 @@ enum ClassificationPresenter {
         return .success(items)
     }
 
-    static func makeSuccessMessage(from items: [ClassificationItem], topCount: Int = 2) -> String {
+    static func makeSuccessMessage(
+        from items: [ClassificationItem],
+        topCount: Int = 2,
+        minConfidence: Float? = nil
+    ) -> String {
         guard !items.isEmpty else {
             return "Nada reconocido."
         }
 
-        let topClassifications = items.prefix(topCount)
+        let filteredItems: [ClassificationItem]
+        if let minConfidence {
+            filteredItems = items.filter { $0.confidence >= minConfidence }
+            guard !filteredItems.isEmpty else {
+                return "Sin resultados con confianza suficiente."
+            }
+        } else {
+            filteredItems = items
+        }
+
+        let topClassifications = filteredItems.prefix(topCount)
         let descriptions = topClassifications.map { item in
             String(format: "%.2f", item.confidence * 100) + "% " + item.identifier
         }
