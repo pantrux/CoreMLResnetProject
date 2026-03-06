@@ -14,6 +14,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Added
 - `scripts/version_sync.py` to check/sync `MARKETING_VERSION` and `CFBundleShortVersionString` from `VERSION`.
 - New CI mandatory gate (**Version sync gate**) to prevent release/app-version drift.
+- `RELEASE_CHECKLIST.md` para estandarizar la salida de release-readiness.
+
+### Fixed
+- Tipos `UIScene` corregidos en `SceneDelegate` (`UISene` -> `UIScene`).
+- Referencia de comentario en `sceneDidDisconnect` ajustada a `application:didDiscardSceneSessions`.
+- Manejo defensivo de errores de clasificación para evitar rutas con `force unwrap`.
 
 ## [1.0.0] - 2026-03-05
 
