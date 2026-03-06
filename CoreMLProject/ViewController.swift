@@ -137,10 +137,14 @@ class ViewController: UIViewController {
 
     // MARK: - Presentation
 
-    var classificationConfig: ClassificationConfigProviding = DefaultClassificationConfig()
+    var classificationConfig: ClassificationConfigProviding = DefaultClassificationConfig() {
+        didSet {
+            resultPresenter = ClassificationResultPresenter(config: classificationConfig)
+        }
+    }
 
-    lazy var resultPresenter: ClassificationResultPresenting = ClassificationResultPresenter(
-        config: classificationConfig
+    var resultPresenter: ClassificationResultPresenting = ClassificationResultPresenter(
+        config: DefaultClassificationConfig()
     )
 
     private func render(result: Result<[ClassificationItem], ClassificationServiceError>) {
