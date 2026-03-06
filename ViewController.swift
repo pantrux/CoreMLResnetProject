@@ -143,13 +143,13 @@ class ViewController: UIViewController {
 
     func processClassifications(for request: VNRequest, error: Error?) {
         DispatchQueue.main.async {
-            guard let results = request.results else {
-                self.resultLabel.text = "Incapaz de clasificar la imagen.\n\(error!.localizedDescription)"
+            guard let results = request.results as? [VNClassificationObservation] else {
+                let errorMessage = error?.localizedDescription ?? "No se recibieron resultados válidos del modelo."
+                self.resultLabel.text = "Incapaz de clasificar la imagen.\n\(errorMessage)"
                 return
             }
 
-            // The classification request handler returns an array of VNClassificationObservation objects.
-            let classifications = results as! [VNClassificationObservation]
+            let classifications = results
 
             if classifications.isEmpty {
                 self.resultLabel.text = "Nada reconocido."
