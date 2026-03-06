@@ -40,3 +40,6 @@ fastlane/test_output
 # Temporary
 *.swp
 *.tmp
+
+# CI diagnostics generated locally
+ci-evidence/

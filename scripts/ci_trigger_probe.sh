@@ -5,17 +5,17 @@ REPO="pantrux/CoreMLResnetProject"
 OUT_DIR="ci-evidence"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 
-mkdir -p "$OUT_DIR"
-
 if [[ -z "${GH_TOKEN:-}" ]]; then
   echo "[ci-trigger-probe] ERROR: GH_TOKEN no está definido"
   echo "[ci-trigger-probe] export GH_TOKEN=<token>"
   exit 1
 fi
 
+mkdir -p "$OUT_DIR"
+
 api() {
   local path="$1"
-  curl -s \
+  curl -sS --fail-with-body \
     -H "Authorization: Bearer ${GH_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}${path}"
