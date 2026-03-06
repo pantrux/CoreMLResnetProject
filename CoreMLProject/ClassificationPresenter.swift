@@ -10,6 +10,48 @@ struct ClassificationItem: Equatable {
     let confidence: Float
 }
 
+protocol ClassificationConfigProviding {
+    var topCount: Int { get }
+    var minConfidence: Float? { get }
+}
+
+struct DefaultClassificationConfig: ClassificationConfigProviding {
+    let topCount: Int
+    let minConfidence: Float?
+
+    init(topCount: Int = 3, minConfidence: Float? = 0.20) {
+        self.topCount = topCount
+        self.minConfidence = minConfidence
+    }
+}
+
+protocol ClassificationResultPresenting {
+    func message(for result: Result<[ClassificationItem], ClassificationServiceError>) -> String
+}
+
+struct ClassificationResultPresenter: ClassificationResultPresenting {
+    let config: ClassificationConfigProviding
+
+    func message(for result: Result<[ClassificationItem], ClassificationServiceError>) -> String {
+        switch result {
+        case .success(let items):
+            return ClassificationPresenter.makeSuccessMessage(
+                from: items,
+                topCount: config.topCount,
+                minConfidence: config.minConfidence
+            )
+        case .failure(.missingResults(let error)):
+            return ClassificationPresenter.makeFailureMessage(for: error)
+        case .failure(.invalidResultType):
+            return "Resultado inesperado de Vision (tipo inválido)."
+        case .failure(.invalidImage):
+            return "No se pudo procesar la imagen seleccionada."
+        case .failure(.visionFailed(let error)):
+            return "Fallo al clasificar: \(error.localizedDescription)"
+        }
+    }
+}
+
 enum ClassificationPresenter {
     static func parsePayload(_ payload: Any?) -> Result<[ClassificationItem], ClassificationPayloadError> {
         guard let payload else {
