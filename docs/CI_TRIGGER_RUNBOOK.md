@@ -46,12 +46,14 @@ export GH_TOKEN="<token>"
 curl -sS --fail -X POST \
   -H "Authorization: Bearer $GH_TOKEN" \
   -H "Accept: application/vnd.github+json" \
+  -H "Content-Type: application/json" \
   https://api.github.com/repos/pantrux/CoreMLResnetProject/actions/workflows/ci-liveness.yml/dispatches \
   -d '{"ref":"main"}'
 
 curl -sS --fail -X POST \
   -H "Authorization: Bearer $GH_TOKEN" \
   -H "Accept: application/vnd.github+json" \
+  -H "Content-Type: application/json" \
   https://api.github.com/repos/pantrux/CoreMLResnetProject/actions/workflows/ios-build.yml/dispatches \
   -d '{"ref":"main", "inputs": {"reason":"manual-recovery"}}'
 ```
