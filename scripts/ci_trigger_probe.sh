@@ -23,6 +23,12 @@ else
   CURL_FAIL_FLAG='--fail'
 fi
 
+if curl --help all 2>/dev/null | grep -q -- '--retry-all-errors'; then
+  CURL_RETRY_ALL_ERRORS_FLAG='--retry-all-errors'
+else
+  CURL_RETRY_ALL_ERRORS_FLAG=''
+fi
+
 # Timeouts/retries to avoid hanging indefinitely on degraded network/API.
 CURL_CONNECT_TIMEOUT="${CURL_CONNECT_TIMEOUT:-10}"
 CURL_MAX_TIME="${CURL_MAX_TIME:-30}"
@@ -37,7 +43,7 @@ api() {
     --max-time "$CURL_MAX_TIME" \
     --retry "$CURL_RETRY" \
     --retry-delay 1 \
-    --retry-all-errors \
+    ${CURL_RETRY_ALL_ERRORS_FLAG:+$CURL_RETRY_ALL_ERRORS_FLAG} \
     -H "Authorization: Bearer ${GH_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}${path}"
