@@ -7,6 +7,7 @@ Objetivo: tener una guía **reproducible** para diagnosticar cuando los workflow
 Workflows cubiertos:
 - `.github/workflows/ci-liveness.yml` (Ubuntu, barato)
 - `.github/workflows/ios-build.yml` (macOS, caro)
+- `.github/workflows/post-merge-ci-evidence.yml` (Ubuntu, snapshot + validación post-merge)
 
 ## Trigger Matrix
 
@@ -70,6 +71,16 @@ Artifacts generados en `ci-evidence/`:
 - `runs-liveness-<timestamp>.json`
 - `runs-ios-build-<timestamp>.json`
 - `summary-<timestamp>.md`
+
+Artifacts automáticos post-merge (workflow `Post-merge CI Evidence`):
+- `ci-evidence/post-merge/<timestamp>/snapshot.json`
+- `ci-evidence/post-merge/<timestamp>/summary.md`
+
+Validación mínima post-merge:
+- Debe existir al menos 1 run `push` en `ci-liveness` para el `HEAD_SHA` mergeado.
+- Debe existir al menos 1 run `push` en `ios-build` para el mismo `HEAD_SHA`.
+- El script aplica polling defensivo (hasta `MAX_ATTEMPTS`, default 10, con `SLEEP_SECONDS`, default 15) para evitar falsos positivos por arranque asíncrono de workflows.
+- Si alguna condición falla al agotar polling, el workflow post-merge marca error para alertar regresión de triggers.
 
 ## Diagnóstico por síntomas
 

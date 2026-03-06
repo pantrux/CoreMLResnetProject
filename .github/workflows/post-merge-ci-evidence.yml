@@ -1,0 +1,41 @@
+name: Post-merge CI Evidence
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: post-merge-ci-evidence-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build post-merge snapshot
+        id: snapshot
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/post_merge_ci_snapshot.sh
+          scripts/post_merge_ci_snapshot.sh
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-merge-ci-evidence-${{ github.run_id }}
+          path: ${{ steps.snapshot.outputs.snapshot_dir || 'ci-evidence/post-merge' }}
+          if-no-files-found: warn
