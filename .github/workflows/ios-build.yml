@@ -181,11 +181,12 @@ jobs:
           xcrun simctl list devices | tee -a ci-logs/test.log || true
           xcrun simctl erase "$DEST_ID" | tee -a ci-logs/test.log || true
 
-          if run_tests 2; then
+          run_tests 2
+          XCODE_STATUS=$?
+          if [ "$XCODE_STATUS" -eq 0 ]; then
             exit 0
           fi
 
-          XCODE_STATUS=$?
           echo "xcodebuild test failed after retry with status $XCODE_STATUS" | tee -a ci-logs/test.log
           xcrun simctl list devices | tee -a ci-logs/test.log || true
           exit "$XCODE_STATUS"
