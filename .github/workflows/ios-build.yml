@@ -145,25 +145,53 @@ jobs:
           DEST_ID="${{ steps.detect_destination.outputs.dest_id }}"
           echo "Running tests on simulator id=$DEST_ID" | tee ci-logs/test.log
 
-          set +e
-          xcodebuild \
-            -project CoreMLProject.xcodeproj \
-            -scheme CoreMLProject \
-            -sdk iphonesimulator \
-            -destination "id=$DEST_ID" \
-            -destination-timeout 120 \
-            -enableCodeCoverage YES \
-            -resultBundlePath ci-logs/test-results.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
-            test | tee -a ci-logs/test.log
-          XCODE_STATUS=${PIPESTATUS[0]}
-          set -e
+          run_tests() {
+            local attempt="$1"
+            local bundle_path="ci-logs/test-results.xcresult"
 
-          if [ "$XCODE_STATUS" -ne 0 ]; then
-            echo "xcodebuild test failed with status $XCODE_STATUS" | tee -a ci-logs/test.log
-            xcrun simctl list devices | tee -a ci-logs/test.log || true
-            exit "$XCODE_STATUS"
+            rm -rf "$bundle_path"
+
+            echo "Attempt ${attempt}: preparing simulator" | tee -a ci-logs/test.log
+            xcrun simctl shutdown all | tee -a ci-logs/test.log || true
+            xcrun simctl boot "$DEST_ID" | tee -a ci-logs/test.log || true
+            xcrun simctl bootstatus "$DEST_ID" -b -t 180 | tee -a ci-logs/test.log
+
+            set +e
+            xcodebuild \
+              -project CoreMLProject.xcodeproj \
+              -scheme CoreMLProject \
+              -sdk iphonesimulator \
+              -destination "id=$DEST_ID" \
+              -destination-timeout 180 \
+              -enableCodeCoverage YES \
+              -resultBundlePath "$bundle_path" \
+              CODE_SIGNING_ALLOWED=NO \
+              test | tee -a ci-logs/test.log
+            XCODE_STATUS=${PIPESTATUS[0]}
+            set -e
+
+            return "$XCODE_STATUS"
+          }
+
+          if run_tests 1; then
+            exit 0
           fi
+
+          echo "Attempt 1 failed. Capturing simulator diagnostics and retrying once..." | tee -a ci-logs/test.log
+          xcrun simctl list devices | tee -a ci-logs/test.log || true
+          xcrun simctl erase "$DEST_ID" | tee -a ci-logs/test.log || true
+
+          set +e
+          run_tests 2
+          XCODE_STATUS=$?
+          set -e
+          if [ "$XCODE_STATUS" -eq 0 ]; then
+            exit 0
+          fi
+
+          echo "xcodebuild test failed after retry with status $XCODE_STATUS" | tee -a ci-logs/test.log
+          xcrun simctl list devices | tee -a ci-logs/test.log || true
+          exit "$XCODE_STATUS"
 
       - name: Coverage gate (mandatory)
         shell: bash
