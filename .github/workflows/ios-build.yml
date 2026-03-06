@@ -181,8 +181,10 @@ jobs:
           xcrun simctl list devices | tee -a ci-logs/test.log || true
           xcrun simctl erase "$DEST_ID" | tee -a ci-logs/test.log || true
 
+          set +e
           run_tests 2
           XCODE_STATUS=$?
+          set -e
           if [ "$XCODE_STATUS" -eq 0 ]; then
             exit 0
           fi
