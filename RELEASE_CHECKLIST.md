@@ -12,7 +12,7 @@
 
 ## 3) Release assets
 - [x] `README.md` actualizado.
-- [x] `CHANGELOG.md` generado para v1.1.0.
+- [ ] `CHANGELOG.md` generado para v1.1.0 (pendiente mover cambios desde `[Unreleased]` a sección versionada en corte de release).
 - [ ] Tag release `v1.1.0`.
 - [ ] Publicar release notes en remoto.
 
