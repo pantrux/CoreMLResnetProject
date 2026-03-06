@@ -11,11 +11,23 @@ if [[ -z "${GH_TOKEN:-}" ]]; then
   exit 1
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[ci-trigger-probe] ERROR: jq no está instalado"
+  echo "[ci-trigger-probe] instala jq (ej: brew install jq / apt-get install jq)"
+  exit 1
+fi
+
+if curl --help all 2>/dev/null | grep -q -- '--fail-with-body'; then
+  CURL_FAIL_FLAG='--fail-with-body'
+else
+  CURL_FAIL_FLAG='--fail'
+fi
+
 mkdir -p "$OUT_DIR"
 
 api() {
   local path="$1"
-  curl -sS --fail-with-body \
+  curl -sS "$CURL_FAIL_FLAG" \
     -H "Authorization: Bearer ${GH_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}${path}"
