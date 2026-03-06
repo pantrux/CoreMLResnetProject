@@ -112,6 +112,26 @@ final class CoreMLProjectTests: XCTestCase {
         XCTAssertEqual(message, "Sin resultados con confianza suficiente.")
     }
 
+    func testClassificationMessageIncludesItemExactlyAtThreshold() {
+        let items = [
+            ClassificationItem(identifier: "tabby", confidence: 0.8765),
+            ClassificationItem(identifier: "borderline", confidence: 0.20),
+            ClassificationItem(identifier: "low", confidence: 0.1999)
+        ]
+
+        let message = ClassificationPresenter.makeSuccessMessage(
+            from: items,
+            topCount: 3,
+            minConfidence: 0.20
+        )
+
+        XCTAssertEqual(
+            message,
+            "Clasificación:\n87.65% tabby\n20.00% borderline"
+        )
+        XCTAssertFalse(message.contains("low"))
+    }
+
     func testParsePayloadReturnsMissingResultsWhenPayloadIsNil() {
         let result = ClassificationPresenter.parsePayload(nil)
 
