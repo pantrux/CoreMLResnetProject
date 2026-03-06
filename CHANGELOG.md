@@ -1,14 +1,31 @@
 # Changelog
 
-## [1.1.0] - 2026-03-06
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+- Post-release housekeeping after `v1.0.0`: development cycle moved to `VERSION=1.0.1-dev`.
+- iOS app metadata versioning now follows the `x.y.z` core from `VERSION` (`1.0.1`).
+
 ### Added
-- README técnico con guía de uso y alcance del proyecto.
-- `RELEASE_CHECKLIST.md` para estandarizar salida a producción.
+- `scripts/version_sync.py` to check/sync `MARKETING_VERSION` and `CFBundleShortVersionString` from `VERSION`.
+- New CI mandatory gate (**Version sync gate**) to prevent release/app-version drift.
+- `RELEASE_CHECKLIST.md` para estandarizar la salida de release-readiness.
 
 ### Fixed
-- Corrección de tipos `UIScene` mal escritos en `SceneDelegate` (`UISene` -> `UIScene`).
-- Manejo de errores en clasificación para evitar `force unwrap` en errores de Vision.
-- Mensajes de error más claros cuando falla la clasificación de imagen.
+- Tipos `UIScene` corregidos en `SceneDelegate` (`UISene` -> `UIScene`).
+- Referencia de comentario en `sceneDidDisconnect` ajustada a `application:didDiscardSceneSessions`.
+- Manejo defensivo de errores de clasificación para evitar rutas con `force unwrap`.
 
-### Improved
-- Código más defensivo al procesar resultados de `VNRequest`.
+## [1.0.0] - 2026-03-05
+
+### Added
+- Initial iOS app with CoreML + Vision image classification flow (`Resnet50`).
+- XCTest target and baseline test automation.
+
+### Changed
+- Progressive CI stabilization and stricter quality enforcement across PR-4 to PR-14.

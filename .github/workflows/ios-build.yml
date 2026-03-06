@@ -1,0 +1,218 @@
+name: iOS Build (CoreMLProject)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo del disparo manual (diagnóstico / recuperación)'
+        required: false
+        default: 'manual-recovery'
+
+concurrency:
+  group: ios-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-and-lint:
+    runs-on: macos-14
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Prepare CI diagnostics folder
+        run: mkdir -p ci-logs
+
+      - name: Release metadata gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_release_metadata.py | tee ci-logs/release-metadata.log
+
+      - name: Version sync gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/version_sync.py --mode check | tee ci-logs/version-sync.log
+
+      - name: Validate LFS model availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs ls-files | tee ci-logs/git-lfs-files.log
+
+          MODEL_PATH="CoreMLProject/Resnet50.mlmodel"
+          MODEL_SIZE=$(wc -c < "$MODEL_PATH")
+          echo "model_size_bytes=$MODEL_SIZE" | tee ci-logs/model-size.log
+
+          # Pointer file is ~130 bytes; require real payload for build.
+          if [ "$MODEL_SIZE" -lt 1000000 ]; then
+            echo "::error::Resnet50.mlmodel parece no haberse descargado desde LFS (archivo demasiado pequeño)."
+            exit 1
+          fi
+
+      - name: Xcode version
+        run: xcodebuild -version | tee ci-logs/xcode-version.log
+
+      - name: List schemes
+        run: xcodebuild -list -project CoreMLProject.xcodeproj | tee ci-logs/schemes.log
+
+      - name: Install SwiftLint
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v swiftlint >/dev/null 2>&1; then
+            swiftlint version | tee ci-logs/swiftlint-version.log
+          else
+            brew update
+            brew install swiftlint
+            swiftlint version | tee ci-logs/swiftlint-version.log
+          fi
+
+      - name: SwiftLint gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          swiftlint lint --strict --config .swiftlint.yml | tee ci-logs/swiftlint.log
+
+      - name: Detect iOS Simulator destination (strict)
+        id: detect_destination
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DESTINATIONS=$(xcodebuild -showdestinations \
+            -project CoreMLProject.xcodeproj \
+            -scheme CoreMLProject)
+
+          echo "$DESTINATIONS" | tee ci-logs/destinations.log
+
+          DEST_ID=$(echo "$DESTINATIONS" \
+            | sed -nE 's/.*platform:iOS Simulator,.*id:[[:space:]]*([^,]+),.*/\1/p' \
+            | grep -v 'placeholder' \
+            | head -n1 || true)
+
+          if [ -z "${DEST_ID:-}" ]; then
+            echo "No concrete iOS Simulator runtime/device available on this runner." | tee -a ci-logs/destinations.log
+            echo "::error::No concrete iOS Simulator runtime/device available on this runner. Test gate is strict and cannot be skipped."
+            exit 1
+          fi
+
+          echo "dest_id=$DEST_ID" >> "$GITHUB_OUTPUT"
+          {
+            echo "## iOS Test Gate"
+            echo "✅ Simulator detectado (strict mode): \`$DEST_ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build gate (mandatory)
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project CoreMLProject.xcodeproj \
+            -scheme CoreMLProject \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee ci-logs/build.log
+
+      - name: Build-for-testing gate (mandatory)
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project CoreMLProject.xcodeproj \
+            -scheme CoreMLProject \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build-for-testing | tee ci-logs/build-for-testing.log
+
+      - name: Test gate (mandatory)
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DEST_ID="${{ steps.detect_destination.outputs.dest_id }}"
+          echo "Running tests on simulator id=$DEST_ID" | tee ci-logs/test.log
+
+          run_tests() {
+            local attempt="$1"
+            local bundle_path="ci-logs/test-results.xcresult"
+
+            rm -rf "$bundle_path"
+
+            echo "Attempt ${attempt}: preparing simulator" | tee -a ci-logs/test.log
+            xcrun simctl shutdown all | tee -a ci-logs/test.log || true
+            xcrun simctl boot "$DEST_ID" | tee -a ci-logs/test.log || true
+            xcrun simctl bootstatus "$DEST_ID" -b -t 180 | tee -a ci-logs/test.log
+
+            set +e
+            xcodebuild \
+              -project CoreMLProject.xcodeproj \
+              -scheme CoreMLProject \
+              -sdk iphonesimulator \
+              -destination "id=$DEST_ID" \
+              -destination-timeout 180 \
+              -enableCodeCoverage YES \
+              -resultBundlePath "$bundle_path" \
+              CODE_SIGNING_ALLOWED=NO \
+              test | tee -a ci-logs/test.log
+            XCODE_STATUS=${PIPESTATUS[0]}
+            set -e
+
+            return "$XCODE_STATUS"
+          }
+
+          if run_tests 1; then
+            exit 0
+          fi
+
+          echo "Attempt 1 failed. Capturing simulator diagnostics and retrying once..." | tee -a ci-logs/test.log
+          xcrun simctl list devices | tee -a ci-logs/test.log || true
+          xcrun simctl erase "$DEST_ID" | tee -a ci-logs/test.log || true
+
+          set +e
+          run_tests 2
+          XCODE_STATUS=$?
+          set -e
+          if [ "$XCODE_STATUS" -eq 0 ]; then
+            exit 0
+          fi
+
+          echo "xcodebuild test failed after retry with status $XCODE_STATUS" | tee -a ci-logs/test.log
+          xcrun simctl list devices | tee -a ci-logs/test.log || true
+          exit "$XCODE_STATUS"
+
+      - name: Coverage gate (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun xccov view --report --json ci-logs/test-results.xcresult > ci-logs/coverage-report.json
+
+          python3 scripts/check_coverage.py \
+            --report ci-logs/coverage-report.json \
+            --target CoreMLProject \
+            --min-line 0.30 | tee ci-logs/coverage-gate.log
+
+          {
+            echo "## Coverage Gate"
+            cat ci-logs/coverage-gate.log
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload CI diagnostics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-diagnostics-${{ github.run_id }}
+          path: ci-logs
+          if-no-files-found: warn
