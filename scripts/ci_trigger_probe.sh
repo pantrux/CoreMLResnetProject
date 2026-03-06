@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="pantrux/CoreMLResnetProject"
+REPO="${REPO:-pantrux/CoreMLResnetProject}"
 OUT_DIR="ci-evidence"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 
