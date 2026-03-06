@@ -27,8 +27,13 @@ git log --oneline -n 5
 ### 2) Confirma que workflows estén activos
 
 ```bash
-# API pública (sin auth) suele bastar para lectura
-curl -s https://api.github.com/repos/pantrux/CoreMLResnetProject/actions/workflows \
+# En repos privados, usa GH_TOKEN. En públicos, también se recomienda para evitar límites.
+export GH_TOKEN="<token>"
+
+curl -sS --fail \
+  -H "Authorization: Bearer $GH_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/pantrux/CoreMLResnetProject/actions/workflows \
   | jq -r '.workflows[] | [.name, .state, .path] | @tsv'
 ```
 
